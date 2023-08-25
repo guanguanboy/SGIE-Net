@@ -36,8 +36,9 @@ if args.dataset=='FiveK':
     yaml_file = 'Options/Enhancement_MIRNet_v2_FiveK.yml'
     weights = 'pretrained_models/enhancement_fivek.pth'
 elif args.dataset=='Lol':
-    yaml_file = 'Options/Enhancement_MIRNet_v2_Lol.yml'
-    weights = 'pretrained_models/enhancement_lol.pth'
+    yaml_file = '/data/liguanlin/codes/MIRNetv2/Enhancement/Options/Enhancement_MIRNet_v2_Lol.yml'
+    #weights = 'pretrained_models/enhancement_lol.pth'
+    weights = '/data/liguanlin/codes/MIRNetv2/experiments/Enhancement_MIRNet_v2_lol/models/net_g_108000.pth'
 else: 
     print("Wrong dataset name")
 
