@@ -6,7 +6,7 @@ from basicsr.data.data_util import (paired_paths_from_folder,
                                     paired_DP_paths_from_folder,
                                     paired_paths_from_lmdb,
                                     paired_paths_from_meta_info_file)
-from basicsr.data.transforms import augment, paired_random_crop, paired_random_crop_DP, random_augmentation,paired_random_crop_semantic
+from basicsr.data.transforms import augment, paired_random_crop, paired_random_crop_DP, random_augmentation
 from basicsr.utils import FileClient, imfrombytes, img2tensor, padding, padding_DP, imfrombytesDP
 
 import random
@@ -93,11 +93,9 @@ class Dataset_PairedSamImage(data.Dataset):
 
 
         semantic_path = self.paths[index]['semantic_path']
-        img_bytes = self.file_client.get(semantic_path, 'semantic')
+        img_bytes = self.file_client.get(lq_path, 'semantic')
         try:
-            img_semantic = imfrombytes(img_bytes, flag='grayscale', float32=True)
-            img_semantic = np.expand_dims(img_semantic, axis=-1)
-
+            img_semantic = imfrombytes(img_bytes, float32=True)
         except:
             raise Exception("lq path {} not working".format(lq_path))
 
@@ -105,10 +103,10 @@ class Dataset_PairedSamImage(data.Dataset):
         if self.opt['phase'] == 'train':
             gt_size = self.opt['gt_size']
             # padding
-            img_gt, img_lq = padding(img_gt, img_lq, gt_size)
+            img_gt, img_lq, img_semantic = padding_DP(img_gt, img_lq, img_semantic, gt_size)
 
             # random crop
-            img_lq, img_semantic,img_gt = paired_random_crop_semantic(img_lq, img_semantic, img_gt, gt_size, scale,
+            img_gt, img_lq, img_semantic = paired_random_crop_DP(img_gt, img_lq, img_semantic, gt_size, scale,
                                                 gt_path)
 
             # flip, rotation augmentations
@@ -116,14 +114,14 @@ class Dataset_PairedSamImage(data.Dataset):
                 img_gt, img_lq, img_semantic = random_augmentation(img_gt, img_lq, img_semantic)
             
         # BGR to RGB, HWC to CHW, numpy to tensor
-        img_gt, img_lq = img2tensor([img_gt, img_lq],
+        img_gt, img_lq,img_semantic = img2tensor([img_gt, img_lq,img_semantic],
                                     bgr2rgb=True,
                                     float32=True)
-        img_semantic = img2tensor(img_semantic, bgr2rgb=False, float32=True)
         # normalize
         if self.mean is not None or self.std is not None:
             normalize(img_lq, self.mean, self.std, inplace=True)
             normalize(img_gt, self.mean, self.std, inplace=True)
+            normalize(img_semantic, self.mean, self.std, inplace=True)
 
         return {
             'lq': img_lq,

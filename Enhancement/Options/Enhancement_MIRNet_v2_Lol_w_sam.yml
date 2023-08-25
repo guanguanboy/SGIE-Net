@@ -1,5 +1,5 @@
 # general settings
-name: Enhancement_MIRNet_v2_lol_sam
+name: Enhancement_MIRNet_v2_lol_gray_sam
 model_type: ImageSamCleanModel
 scale: 1
 num_gpu: 4  # set num_gpu: 0 for cpu mode
@@ -46,14 +46,14 @@ datasets:
     type: Dataset_PairedSamImage
     dataroot_gt: ./Enhancement/Datasets/eval15/high
     dataroot_lq: ./Enhancement/Datasets/eval15/low
-    dataroot_semantic: ./Enhancement/Datasets/eval15/low_semantic
+    dataroot_semantic: ./Enhancement/Datasets/eval15/low_semantic_gray
     io_backend:
       type: disk
 
 # network structures
 network_g:
   type: MIRNet_v2
-  inp_channels: 6
+  inp_channels: 4
   out_channels: 3
   n_feat: 80
   chan_factor: 1.5
