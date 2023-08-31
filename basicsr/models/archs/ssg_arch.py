@@ -1326,14 +1326,108 @@ class SSG(nn.Module):
 
         return normlight_image
 
+class SSG_V1(nn.Module):
+
+    def __init__(
+        self,
+        embed_dim = 120,
+        image_size = (256,256),
+        window_size = 16,
+        patch_size = 16
+    ) -> None:
+        """
+        SAM predicts object masks from an image and input prompts.
+
+        Arguments:
+          image_encoder (ImageEncoderViT): The backbone used to encode the
+            image into image embeddings that allow for efficient mask prediction.
+          prompt_encoder (PromptEncoder): Encodes various types of input prompts.
+          mask_decoder (MaskDecoder): Predicts masks from the image embeddings
+            and encoded prompts.
+          pixel_mean (list(float)): Mean values for normalizing pixels in the input image.
+          pixel_std (list(float)): Std values for normalizing pixels in the input image.
+        """
+        super().__init__()
+        image_width = image_size[0]
+        image_height = image_size[1]
+        image_embedding_size = image_width // patch_size
+
+        self.image_encoder = ImageEncoderCNN(nf=embed_dim, front_RBs=1)
+        self.mask_encoder = MaskEncoder(
+            embed_dim=embed_dim,
+            image_embedding_size=(image_embedding_size, image_embedding_size),
+            input_image_size=(image_width, image_height),
+            mask_in_chans=16,
+        )
+        self.enlighten_transformer = EnlightenTransformer(upscale=1, in_chans=4, img_size=(image_width, image_height),
+                   window_size=window_size, depths=[6, 6, 6, 6],
+                   embed_dim=embed_dim, num_heads=[6, 6, 6, 6], mlp_ratio=2,          
+                   upsampler='pixelshuffle',resi_connection='1conv')
+        self.image_decoder = ImageDecoderCNN(nf=embed_dim, back_RBs=1)
+
+    @torch.no_grad()
+    def forward(
+        self,
+        batched_input,
+        sematic_mask
+    ):
+        """
+        Predicts masks end-to-end from provided images and prompts.
+        If prompts are not known in advance, using SamPredictor is
+        recommended over calling the model directly.
+
+        Arguments:
+          batched_input (list(dict)): A list over input images, each a
+            dictionary with the following keys. A prompt key can be
+            excluded if it is not present.
+              'image': The image as a torch tensor in 3xHxW format,
+                already transformed for input to the model.
+              'original_size': (tuple(int, int)) The original size of
+                the image before transformation, as (H, W).
+              'point_coords': (torch.Tensor) Batched point prompts for
+                this image, with shape BxNx2. Already transformed to the
+                input frame of the model.
+              'point_labels': (torch.Tensor) Batched labels for point prompts,
+                with shape BxN.
+              'boxes': (torch.Tensor) Batched box inputs, with shape Bx4.
+                Already transformed to the input frame of the model.
+              'mask_inputs': (torch.Tensor) Batched mask inputs to the model,
+                in the form Bx1xHxW.
+          multimask_output (bool): Whether the model should predict multiple
+            disambiguating masks, or return a single mask.
+
+        Returns:
+          (list(dict)): A list over input images, where each element is
+            as dictionary with the following keys.
+              'masks': (torch.Tensor) Batched binary mask predictions,
+                with shape BxCxHxW, where B is the number of input prompts,
+                C is determined by multimask_output, and (H, W) is the
+                original size of the image.
+              'iou_predictions': (torch.Tensor) The model's predictions
+                of mask quality, in shape BxC.
+              'low_res_logits': (torch.Tensor) Low resolution logits with
+                shape BxCxHxW, where H=W=256. Can be passed as mask input
+                to subsequent iterations of prediction.
+        """
+        image_embeddings,L1_fea_1,L1_fea_2,L1_fea_3 = self.image_encoder(batched_input)
+        mask_embeddings = self.mask_encoder(sematic_mask)
+        
+        semantic_guided_embedding = image_embeddings + mask_embeddings
+
+        enlightened_feats = self.enlighten_transformer(semantic_guided_embedding)
+
+        normlight_image = image_decoder(batched_input, enlightened_feats,L1_fea_1,L1_fea_2,L1_fea_3)
+
+        return normlight_image
+    
 def build_ssg():
     embed_dim = 120
     image_width = 256
     image_height = 256
     window_size = 16
-    vit_patch_size = 16
+    patch_size = 16
     image_size = 256
-    image_embedding_size = image_size // vit_patch_size
+    image_embedding_size = image_size // patch_size
 
     ssg = SSG(
         image_encoder= ImageEncoderCNN(nf=embed_dim, front_RBs=1),
@@ -1418,8 +1512,8 @@ if __name__ == '__main__':
     print(normlight_image.shape) #1 3 256 256
 
     #test_hat()
-    ssg_model = build_ssg()
-
+    #ssg_model = build_ssg()
+    ssg_model = SSG_V1()
     mask = torch.randn((1,1,image_size,image_size))
     input = torch.randn((1,3,image_size,image_size))
 
