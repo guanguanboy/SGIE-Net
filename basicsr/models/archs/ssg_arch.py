@@ -125,10 +125,68 @@ class MaskEncoder(nn.Module):
         if masks is not None:
             dense_embeddings = self._embed_masks(masks)
 
-
         return dense_embeddings
 
+class ImageEncoderCNN(nn.Module):
+    def __init__(self, nf=64, front_RBs=5):
+        super(ImageEncoderCNN, self).__init__()
+        self.nf = nf
+        ResidualBlock_noBN_f = functools.partial(arch_util.ResidualBlock_noBN, nf=nf)
 
+        self.conv_first_1 = nn.Conv2d(3, nf, 3, 1, 1, bias=True)
+        self.conv_first_2 = nn.Conv2d(nf, nf, 3, 2, 1, bias=True)
+        self.conv_first_3 = nn.Conv2d(nf, nf, 3, 2, 1, bias=True)
+
+        self.feature_extraction = arch_util.make_layer(ResidualBlock_noBN_f, front_RBs)
+
+        self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+        #self.transformer = Encoder_patch66(d_model=1024, d_inner=2048, n_layers=6)
+        self.recon_trunk_light = arch_util.make_layer(ResidualBlock_noBN_f, 6)
+
+    def forward(self, x):
+        x_center = x #torch.Size([1, 3, 400, 608])
+
+        L1_fea_1 = self.lrelu(self.conv_first_1(x_center)) #torch.Size([1, 64, 400, 608])
+        L1_fea_2 = self.lrelu(self.conv_first_2(L1_fea_1)) #torch.Size([1, 64, 200, 304])
+        L1_fea_3 = self.lrelu(self.conv_first_3(L1_fea_2)) ##torch.Size([1, 64, 100, 152])
+
+        fea = self.feature_extraction(L1_fea_3) #torch.Size([1, 64, 100, 152])
+        fea_light = self.recon_trunk_light(fea) #torch.Size([1, 64, 100, 152])
+        print('fea_light.shape=', fea.shape)
+
+        return fea_light, L1_fea_1,L1_fea_2,L1_fea_3
+
+###############################
+class ImageDecoderCNN(nn.Module):
+    def __init__(self, nf=64, back_RBs=10):
+        super(ImageDecoderCNN, self).__init__()
+        self.nf = nf
+        ResidualBlock_noBN_f = functools.partial(arch_util.ResidualBlock_noBN, nf=nf)
+        self.recon_trunk = arch_util.make_layer(ResidualBlock_noBN_f, back_RBs)
+
+        self.upconv1 = nn.Conv2d(nf*2, nf * 4, 3, 1, 1, bias=True)
+        self.upconv2 = nn.Conv2d(nf*2, 64 * 4, 3, 1, 1, bias=True)
+        self.pixel_shuffle = nn.PixelShuffle(2)
+        self.HRconv = nn.Conv2d(64 + nf, 64, 3, 1, 1, bias=True)
+        self.conv_last = nn.Conv2d(64, 3, 3, 1, 1, bias=True)
+
+        self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+
+    def forward(self, x, fea, L1_fea_1, L1_fea_2, L1_fea_3):
+        x_center = x #torch.Size([1, 3, 400, 608])
+
+        out_noise = self.recon_trunk(fea)
+        out_noise = torch.cat([out_noise, L1_fea_3], dim=1)
+        out_noise = self.lrelu(self.pixel_shuffle(self.upconv1(out_noise)))
+        out_noise = torch.cat([out_noise, L1_fea_2], dim=1)
+        out_noise = self.lrelu(self.pixel_shuffle(self.upconv2(out_noise)))
+        out_noise = torch.cat([out_noise, L1_fea_1], dim=1)
+        out_noise = self.lrelu(self.HRconv(out_noise))
+        out_noise = self.conv_last(out_noise)
+        out_noise = out_noise + x_center
+
+        return out_noise
+    
 ###############################
 class low_light_transformer(nn.Module):
     def __init__(self, nf=64, nframes=5, groups=8, front_RBs=5, back_RBs=10, center=None,
@@ -139,7 +197,7 @@ class low_light_transformer(nn.Module):
         self.is_predeblur = True if predeblur else False
         self.HR_in = True if HR_in else False
         self.w_TSA = w_TSA
-        ResidualBlock_noBN_f = functools.partial(arch_util.ResidualBlock_noBN, nf=nf)
+        ResidualBlock_noBN_f = functools.partial(arch_util.ResidualBlock_noBN, nf=120)
 
         if self.HR_in:
             self.conv_first_1 = nn.Conv2d(3, nf, 3, 1, 1, bias=True)
@@ -154,7 +212,7 @@ class low_light_transformer(nn.Module):
         self.upconv1 = nn.Conv2d(nf*2, nf * 4, 3, 1, 1, bias=True)
         self.upconv2 = nn.Conv2d(nf*2, 64 * 4, 3, 1, 1, bias=True)
         self.pixel_shuffle = nn.PixelShuffle(2)
-        self.HRconv = nn.Conv2d(64*2, 64, 3, 1, 1, bias=True)
+        self.HRconv = nn.Conv2d(64 + nf, 64, 3, 1, 1, bias=True)
         self.conv_last = nn.Conv2d(64, 3, 3, 1, 1, bias=True)
 
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
@@ -170,6 +228,7 @@ class low_light_transformer(nn.Module):
 
         fea = self.feature_extraction(L1_fea_3) #torch.Size([1, 64, 100, 152])
         fea_light = self.recon_trunk_light(fea) #torch.Size([1, 64, 100, 152])
+        print('fea_light.shape=', fea.shape)
 
         h_feature = fea.shape[2]
         w_feature = fea.shape[3]
@@ -231,9 +290,21 @@ if __name__ == '__main__':
     x = mask_encoder(x) 
     print(x.shape) #torch.Size([1, 120, 64, 64])
 
-    light_transformer = low_light_transformer(nf=64, nframes=5,groups=8, front_RBs=1, back_RBs=1,center=None, predeblur=True, HR_in=True)
-    x_mask = torch.randn((1, 1, 400, 600))
-    x = torch.randn((1, 3, 400, 600))
+    light_transformer = low_light_transformer(nf=120, nframes=5,groups=8, front_RBs=1, back_RBs=1,center=None, predeblur=True, HR_in=True)
+    image_width = 256
+    image_height = 256
+    #image_width = 400
+    #image_height = 600    
+    x_mask = torch.randn((1, 1, image_width, image_height))
+    x = torch.randn((1, 3, image_height, image_height))
 
     y = light_transformer(x,x_mask)
     print('light transformer output shape=', y.shape) #torch.Size([1, 3, 400, 600])
+
+    image_encoder = ImageEncoderCNN(nf=120, front_RBs=1)
+    image_embedding,L1_fea_1,L1_fea_2,L1_fea_3 = image_encoder(x)
+    print(image_embedding.shape)
+
+    image_decoder = ImageDecoderCNN(nf=120, back_RBs=1)
+    normlight_image = image_decoder(x, image_embedding,L1_fea_1,L1_fea_2,L1_fea_3)
+    print(normlight_image.shape)
