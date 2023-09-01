@@ -1368,8 +1368,7 @@ class SSG(nn.Module):
     @torch.no_grad()
     def forward(
         self,
-        batched_input,
-        sematic_mask
+        sematic_input
     ):
         """
         Predicts masks end-to-end from provided images and prompts.
@@ -1409,6 +1408,8 @@ class SSG(nn.Module):
                 shape BxCxHxW, where H=W=256. Can be passed as mask input
                 to subsequent iterations of prediction.
         """
+        batched_input  = sematic_input[:,0:3,:,:]
+        sematic_mask = sematic_input[:,3,:,:]
         image_embeddings,L1_fea_1,L1_fea_2,L1_fea_3 = self.image_encoder(batched_input)
         mask_embeddings = self.mask_encoder(sematic_mask)
         

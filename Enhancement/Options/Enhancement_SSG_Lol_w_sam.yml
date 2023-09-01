@@ -54,7 +54,7 @@ datasets:
 network_g:
   type: SSG
   embed_dim: 120
-  image_size: (256,256)
+  image_size: [256,256]
   window_size: 16
   patch_size: 16
 
