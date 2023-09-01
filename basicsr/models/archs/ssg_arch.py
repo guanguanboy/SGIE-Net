@@ -152,7 +152,7 @@ class ImageEncoderCNN(nn.Module):
 
         fea = self.feature_extraction(L1_fea_3) #torch.Size([1, 64, 100, 152])
         fea_light = self.recon_trunk_light(fea) #torch.Size([1, 64, 100, 152])
-        print('fea_light.shape=', fea.shape)
+        #print('fea_light.shape=', fea.shape)
 
         return fea_light, L1_fea_1,L1_fea_2,L1_fea_3
 
@@ -1271,7 +1271,6 @@ class SSG_V0(nn.Module):
         self.enlighten_transformer = enlighten_transformer
         self.image_decoder = image_decoder
 
-    @torch.no_grad()
     def forward(
         self,
         batched_input,
@@ -1366,11 +1365,9 @@ class SSG(nn.Module):
                    upsampler='pixelshuffle',resi_connection='1conv')
         self.image_decoder = ImageDecoderCNN(nf=embed_dim, back_RBs=1)
 
-    @torch.no_grad()
     def forward(
         self,
-        batched_input,
-        sematic_mask
+        semantic_input
     ):
         """
         Predicts masks end-to-end from provided images and prompts.
@@ -1410,6 +1407,9 @@ class SSG(nn.Module):
                 shape BxCxHxW, where H=W=256. Can be passed as mask input
                 to subsequent iterations of prediction.
         """
+
+        batched_input = semantic_input[:,0:3,:,:]
+        sematic_mask = semantic_input[:,3:,:,:]
         image_embeddings,L1_fea_1,L1_fea_2,L1_fea_3 = self.image_encoder(batched_input)
         mask_embeddings = self.mask_encoder(sematic_mask)
         
@@ -1417,7 +1417,7 @@ class SSG(nn.Module):
 
         enlightened_feats = self.enlighten_transformer(semantic_guided_embedding)
 
-        normlight_image = image_decoder(batched_input, enlightened_feats,L1_fea_1,L1_fea_2,L1_fea_3)
+        normlight_image = self.image_decoder(batched_input, enlightened_feats,L1_fea_1,L1_fea_2,L1_fea_3)
 
         return normlight_image
     
@@ -1517,6 +1517,7 @@ if __name__ == '__main__':
     ssg_model = SSG()
     mask = torch.randn((1,1,image_size,image_size))
     input = torch.randn((1,3,image_size,image_size))
-
-    restored_img = ssg_model(input, mask)
+    semantic_input = torch.randn((1,4,image_size,image_size))
+    #restored_img = ssg_model(input, mask)
+    restored_img = ssg_model(semantic_input)
     print('restored_img.shape =', restored_img.shape)
