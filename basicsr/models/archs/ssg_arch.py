@@ -1331,7 +1331,7 @@ class SSG(nn.Module):
     def __init__(
         self,
         embed_dim = 120,
-        image_size = (256,256),
+        image_size = [256,256],
         window_size = 16,
         patch_size = 16
     ) -> None:
@@ -1350,12 +1350,13 @@ class SSG(nn.Module):
         super().__init__()
         image_width = image_size[0]
         image_height = image_size[1]
-        image_embedding_size = image_width // patch_size
+        image_embedding_size_witdh = image_width // patch_size
+        image_embedding_size_height = image_height // patch_size
 
         self.image_encoder = ImageEncoderCNN(nf=embed_dim, front_RBs=1)
         self.mask_encoder = MaskEncoder(
             embed_dim=embed_dim,
-            image_embedding_size=(image_embedding_size, image_embedding_size),
+            image_embedding_size=(image_embedding_size_witdh, image_embedding_size_height),
             input_image_size=(image_width, image_height),
             mask_in_chans=16,
         )
@@ -1368,7 +1369,8 @@ class SSG(nn.Module):
     @torch.no_grad()
     def forward(
         self,
-        sematic_input
+        batched_input,
+        sematic_mask
     ):
         """
         Predicts masks end-to-end from provided images and prompts.
@@ -1408,8 +1410,6 @@ class SSG(nn.Module):
                 shape BxCxHxW, where H=W=256. Can be passed as mask input
                 to subsequent iterations of prediction.
         """
-        batched_input  = sematic_input[:,0:3,:,:]
-        sematic_mask = sematic_input[:,3,:,:]
         image_embeddings,L1_fea_1,L1_fea_2,L1_fea_3 = self.image_encoder(batched_input)
         mask_embeddings = self.mask_encoder(sematic_mask)
         
