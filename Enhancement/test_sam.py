@@ -76,7 +76,7 @@ os.makedirs(result_dir, exist_ok=True)
 input_dir = os.path.join(args.input_dir, dataset, 'eval15', 'low')
 input_paths = natsorted(glob(os.path.join(input_dir, '*.png')) + glob(os.path.join(input_dir, '*.jpg')))
 
-semantic_dir = os.path.join(args.input_dir, dataset, 'eval15', 'low_semantic')
+semantic_dir = os.path.join(args.input_dir, dataset, 'eval15', 'low_semantic_gray')
 semantic_paths = natsorted(glob(os.path.join(semantic_dir, '*.png')) + glob(os.path.join(semantic_dir, '*.jpg')))
 
 target_dir = os.path.join(args.input_dir, dataset, 'eval15', 'high')
@@ -91,7 +91,7 @@ with torch.inference_mode():
 
         img = np.float32(utils.load_img(inp_path))/255.
         target = np.float32(utils.load_img(tar_path))/255.
-        semantic = np.float32(utils.load_img(semantic_path))/255.
+        semantic = np.float32(utils.load_gray_img(semantic_path))/255.
 
         img = torch.from_numpy(img).permute(2,0,1)
         input_ = img.unsqueeze(0).cuda()
