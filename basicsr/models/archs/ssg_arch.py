@@ -1244,7 +1244,7 @@ class EnlightenTransformer(nn.Module):
         x_feat = self.forward_features(x_feat)
         return x_feat
 
-class SSG(nn.Module):
+class SSG_V0(nn.Module):
 
     def __init__(
         self,
@@ -1326,7 +1326,7 @@ class SSG(nn.Module):
 
         return normlight_image
 
-class SSG_V1(nn.Module):
+class SSG(nn.Module):
 
     def __init__(
         self,
@@ -1429,7 +1429,7 @@ def build_ssg():
     image_size = 256
     image_embedding_size = image_size // patch_size
 
-    ssg = SSG(
+    ssg = SSG_V0(
         image_encoder= ImageEncoderCNN(nf=embed_dim, front_RBs=1),
         mask_encoder= MaskEncoder(
             embed_dim=embed_dim,
@@ -1513,7 +1513,7 @@ if __name__ == '__main__':
 
     #test_hat()
     #ssg_model = build_ssg()
-    ssg_model = SSG_V1()
+    ssg_model = SSG()
     mask = torch.randn((1,1,image_size,image_size))
     input = torch.randn((1,3,image_size,image_size))
 
