@@ -79,7 +79,7 @@ class BaseModel():
             net = DistributedDataParallel(
                 net,
                 device_ids=[torch.cuda.current_device()],
-                find_unused_parameters=find_unused_parameters)
+                find_unused_parameters=True)
         elif self.opt['num_gpu'] > 1:
             net = DataParallel(net)
         return net

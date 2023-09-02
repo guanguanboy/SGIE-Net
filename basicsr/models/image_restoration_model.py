@@ -454,7 +454,7 @@ class ImageSamCleanModel(BaseModel):
         if self.ema_decay > 0:
             self.model_ema(decay=self.ema_decay)
 
-    def pad_test(self, window_size):        
+    def pad_test_backup(self, window_size):        
         scale = self.opt.get('scale', 1)
         mod_pad_h, mod_pad_w = 0, 0
         _, _, h, w = self.lq.size()
@@ -467,7 +467,46 @@ class ImageSamCleanModel(BaseModel):
         _, _, h, w = self.output.size()
         self.output = self.output[:, :, 0:h - mod_pad_h * scale, 0:w - mod_pad_w * scale]
 
-    def nonpad_test(self, img=None):
+    def pad_test(self, window_size):        
+        scale = self.opt.get('scale', 1)
+        mod_pad_h, mod_pad_w = 0, 0
+        _, _, h, w = self.lq.size()
+        window_size_upsampled = window_size * 4
+        if h % window_size_upsampled != 0:
+            mod_pad_h = window_size_upsampled - h % window_size_upsampled
+        if w % window_size_upsampled != 0:
+            mod_pad_w = window_size_upsampled - w % window_size_upsampled
+        img = F.pad(self.lq, (0, mod_pad_w, 0, mod_pad_h), 'reflect')
+        mask = F.pad(self.semantic, (0, mod_pad_w, 0, mod_pad_h), 'reflect')
+
+        self.nonpad_test(img, mask)
+        _, _, h, w = self.output.size()
+        self.output = self.output[:, :, 0:h - mod_pad_h * scale, 0:w - mod_pad_w * scale]
+
+    def nonpad_test(self, img=None, mask=None):
+        if img is None:
+            img = self.lq
+            semantic_input = torch.cat((self.lq, self.semantic),dim=1)
+        else:
+            semantic_input = torch.cat((img, mask),dim=1)
+        
+        if hasattr(self, 'net_g_ema'):
+            self.net_g_ema.eval()
+            with torch.no_grad():
+                pred = self.net_g_ema(semantic_input)
+            if isinstance(pred, list):
+                pred = pred[-1]
+            self.output = pred
+        else:
+            self.net_g.eval()
+            with torch.no_grad():
+                pred = self.net_g(semantic_input)
+            if isinstance(pred, list):
+                pred = pred[-1]
+            self.output = pred
+            self.net_g.train()
+
+    def nonpad_test_backup(self, img=None):
         if img is None:
             img = self.lq
             semantic_input = torch.cat((self.lq, self.semantic),dim=1)
