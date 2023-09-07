@@ -244,15 +244,15 @@ class low_light_transformer(nn.Module):
         height = fea.shape[2]
         width = fea.shape[3]
         fea_unfold = F.unfold(fea, kernel_size=4, dilation=1, stride=4, padding=0)
-        fea_unfold = fea_unfold.permute(0, 2, 1) #torch.Size([1, 950, 1024])
+        fea_unfold = fea_unfold.permute(0, 2, 1).contiguous() #torch.Size([1, 950, 1024])
 
         mask_unfold = F.unfold(mask, kernel_size=4, dilation=1, stride=4, padding=0)
-        mask_unfold = mask_unfold.permute(0, 2, 1)
+        mask_unfold = mask_unfold.permute(0, 2, 1).contiguous()
         mask_unfold = torch.mean(mask_unfold, dim=2).unsqueeze(dim=-2)
         mask_unfold[mask_unfold <= 0.5] = 0.0 #torch.Size([1, 1, 950])
 
         #fea_unfold = self.transformer(fea_unfold, xs, src_mask=mask_unfold)
-        fea_unfold = fea_unfold.permute(0, 2, 1)
+        fea_unfold = fea_unfold.permute(0, 2, 1).contiguous()
         fea_unfold = nn.Fold(output_size=(height, width), kernel_size=(4, 4), stride=4, padding=0, dilation=1)(fea_unfold)
 
         channel = fea.shape[1]
@@ -443,11 +443,11 @@ class WindowAttention(nn.Module):
             mask: (0/-inf) mask with shape of (num_windows, Wh*Ww, Wh*Ww) or None
         """
         b_, n, c = x.shape
-        qkv = self.qkv(x).reshape(b_, n, 3, self.num_heads, c // self.num_heads).permute(2, 0, 3, 1, 4)
+        qkv = self.qkv(x).reshape(b_, n, 3, self.num_heads, c // self.num_heads).permute(2, 0, 3, 1, 4).contiguous()
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
         q = q * self.scale
-        attn = (q @ k.transpose(-2, -1))
+        attn = (q @ k.transpose(-2, -1).contiguous())
 
         relative_position_bias = self.relative_position_bias_table[rpi.view(-1)].view(
             self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1)  # Wh*Ww,Wh*Ww,nH
@@ -464,7 +464,7 @@ class WindowAttention(nn.Module):
 
         attn = self.attn_drop(attn)
 
-        x = (attn @ v).transpose(1, 2).reshape(b_, n, c)
+        x = (attn @ v).transpose(1, 2).contiguous().reshape(b_, n, c)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
@@ -547,7 +547,7 @@ class HAB(nn.Module):
         x = x.view(b, h, w, c)
 
         # Conv_X
-        conv_x = self.conv_block(x.permute(0, 3, 1, 2))
+        conv_x = self.conv_block(x.permute(0, 3, 1, 2).contiguous())
         conv_x = conv_x.permute(0, 2, 3, 1).contiguous().view(b, h * w, c)
 
         # cyclic shift
@@ -672,7 +672,7 @@ class OCAB(nn.Module):
         x = x.view(b, h, w, c)
 
         qkv = self.qkv(x).reshape(b, h, w, 3, c).permute(3, 0, 4, 1, 2) # 3, b, c, h, w
-        q = qkv[0].permute(0, 2, 3, 1) # b, h, w, c
+        q = qkv[0].permute(0, 2, 3, 1).contiguous() # b, h, w, c
         kv = torch.cat((qkv[1], qkv[2]), dim=1) # b, 2*c, h, w
 
         # partition windows
@@ -686,12 +686,12 @@ class OCAB(nn.Module):
         b_, nq, _ = q_windows.shape
         _, n, _ = k_windows.shape
         d = self.dim // self.num_heads
-        q = q_windows.reshape(b_, nq, self.num_heads, d).permute(0, 2, 1, 3) # nw*b, nH, nq, d
-        k = k_windows.reshape(b_, n, self.num_heads, d).permute(0, 2, 1, 3) # nw*b, nH, n, d
-        v = v_windows.reshape(b_, n, self.num_heads, d).permute(0, 2, 1, 3) # nw*b, nH, n, d
+        q = q_windows.reshape(b_, nq, self.num_heads, d).permute(0, 2, 1, 3).contiguous() # nw*b, nH, nq, d
+        k = k_windows.reshape(b_, n, self.num_heads, d).permute(0, 2, 1, 3).contiguous() # nw*b, nH, n, d
+        v = v_windows.reshape(b_, n, self.num_heads, d).permute(0, 2, 1, 3).contiguous() # nw*b, nH, n, d
 
         q = q * self.scale
-        attn = (q @ k.transpose(-2, -1))
+        attn = (q @ k.transpose(-2, -1).contiguous())
 
         relative_position_bias = self.relative_position_bias_table[rpi.view(-1)].view(
             self.window_size * self.window_size, self.overlap_win_size * self.overlap_win_size, -1)  # ws*ws, wse*wse, nH
@@ -699,7 +699,7 @@ class OCAB(nn.Module):
         attn = attn + relative_position_bias.unsqueeze(0)
 
         attn = self.softmax(attn)
-        attn_windows = (attn @ v).transpose(1, 2).reshape(b_, nq, self.dim)
+        attn_windows = (attn @ v).transpose(1, 2).contiguous().reshape(b_, nq, self.dim)
 
         # merge windows
         attn_windows = attn_windows.view(-1, self.window_size, self.window_size, self.dim)
@@ -923,7 +923,7 @@ class PatchEmbed(nn.Module):
             self.norm = None
 
     def forward(self, x):
-        x = x.flatten(2).transpose(1, 2)  # b Ph*Pw c
+        x = x.flatten(2).transpose(1, 2).contiguous()  # b Ph*Pw c
         if self.norm is not None:
             x = self.norm(x)
         return x
