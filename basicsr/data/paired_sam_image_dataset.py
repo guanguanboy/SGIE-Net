@@ -121,7 +121,7 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
 
             #这里缺少一个将list 转换为numpy array的操作。
             img_semantic_numpy = np.array(img_semantic)
-            img_semantic_numpy_transpose = np.transpose(img_semantic_numpy, (2,1,0))
+            img_semantic_numpy_transpose = np.transpose(img_semantic_numpy, (1,2,0)) #将第一维置换到第三维
             # flip, rotation augmentations
             if self.geometric_augs:
                 img_gt, img_lq, img_semantic_numpy_aug = random_augmentation(img_gt, img_lq, img_semantic_numpy_transpose)
@@ -143,9 +143,9 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
             img_semantic_tensor_list.append(img_semantic_tensor)
 
         img_semantic_numpy_aug_first8 = img_semantic_numpy_aug[:,:,0:8]
-        img_semantic_numpy_aug_first8_transpose = np.transpose(img_semantic_numpy_aug_first8, (2,1,0))
+        img_semantic_numpy_aug_first8_transpose = np.transpose(img_semantic_numpy_aug_first8, (2,0,1))#将第三维置换到第一维
 
-        img_semantic_numpy_aug_first8_tensor = torch.from_numpy(img_semantic_numpy_aug_first8_transpose)
+        img_semantic_numpy_aug_first8_tensor = torch.from_numpy(img_semantic_numpy_aug_first8_transpose) 
         # normalize
         if self.mean is not None or self.std is not None:
             normalize(img_lq, self.mean, self.std, inplace=True)
