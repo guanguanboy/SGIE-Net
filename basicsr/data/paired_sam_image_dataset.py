@@ -17,6 +17,10 @@ import torchvision.transforms as transforms
 import os
 import json
 from pycocotools import mask as mask_utils
+import random
+seed_value = 42  # 随机种子值
+
+random.seed(seed_value)
 
 class Dataset_PairedSamImageMultipleMasks(data.Dataset):
     """Paired image dataset for image restoration.
@@ -110,6 +114,7 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
                     single_mask = single_mask.astype(bool)
                     img_semantic.append(single_mask)
 
+        mask_count = len(img_semantic)
         # augmentation for training
         if self.opt['phase'] == 'train':
             gt_size = self.opt['gt_size']
@@ -131,21 +136,32 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
                                     bgr2rgb=True,
                                     float32=True)
         #这里只需要将img_semantic list中的每一项转换为tensor即可。
-        img_semantic_tensor_list = []
+        
+        img_semantic_numpy_list = []
         #for i in range(img_semantic_numpy_aug.shape[2]):
         #这里有个dropout策略，只保留其中32个mask
-        for i in range(8):
+        start = 0  # 范围起始值
+        end = mask_count  # 范围结束值
+        count = 8  # 需要选择的整数数量
+
+        random_integers = random.sample(range(start, end), count)
+
+        for i in random_integers:
             single_mask = img_semantic_numpy_aug[:,:,i]
             #single_mask = img_semantic_numpy_aug_list[i]
-            single_mask_expend = np.expand_dims(single_mask, axis=2)
+            #single_mask_expend = np.expand_dims(single_mask, axis=2)
             #print(single_mask_expend.shape)
-            img_semantic_tensor = torch.from_numpy(single_mask_expend)
-            img_semantic_tensor_list.append(img_semantic_tensor)
+            #img_semantic_tensor = torch.from_numpy(single_mask_expend)
+            img_semantic_numpy_list.append(single_mask)
 
-        img_semantic_numpy_aug_first8 = img_semantic_numpy_aug[:,:,0:8]
-        img_semantic_numpy_aug_first8_transpose = np.transpose(img_semantic_numpy_aug_first8, (2,0,1))#将第三维置换到第一维
+        #img_semantic_numpy_aug_first8 = img_semantic_numpy_aug[:,:,0:count]
+        #img_semantic_numpy_aug_first8_transpose = np.transpose(img_semantic_numpy_aug_first8, (2,0,1))#将第三维置换到第一维
+        #img_semantic_numpy_aug_first8_tensor = torch.from_numpy(img_semantic_numpy_aug_first8_transpose) 
 
-        img_semantic_numpy_aug_first8_tensor = torch.from_numpy(img_semantic_numpy_aug_first8_transpose) 
+        img_semantic_numpy_selected = np.array(img_semantic_numpy_list)
+        #img_semantic_numpy_aug_first8_transpose = np.transpose(img_semantic_numpy_selected, (2,0,1))#将第三维置换到第一维
+
+        img_semantic_numpy_aug_first8_tensor = torch.from_numpy(img_semantic_numpy_selected) 
         # normalize
         if self.mean is not None or self.std is not None:
             normalize(img_lq, self.mean, self.std, inplace=True)
