@@ -132,13 +132,20 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
                                     float32=True)
         #这里只需要将img_semantic list中的每一项转换为tensor即可。
         img_semantic_tensor_list = []
-        for i in range(len(img_semantic_numpy_aug)):
+        #for i in range(img_semantic_numpy_aug.shape[2]):
+        #这里有个dropout策略，只保留其中32个mask
+        for i in range(8):
             single_mask = img_semantic_numpy_aug[:,:,i]
+            #single_mask = img_semantic_numpy_aug_list[i]
             single_mask_expend = np.expand_dims(single_mask, axis=2)
-            print(single_mask_expend.shape)
-            img_semantic_tensor = torch.from_numpy(single_mask)
+            #print(single_mask_expend.shape)
+            img_semantic_tensor = torch.from_numpy(single_mask_expend)
             img_semantic_tensor_list.append(img_semantic_tensor)
 
+        img_semantic_numpy_aug_first8 = img_semantic_numpy_aug[:,:,0:8]
+        img_semantic_numpy_aug_first8_transpose = np.transpose(img_semantic_numpy_aug_first8, (2,1,0))
+
+        img_semantic_numpy_aug_first8_tensor = torch.from_numpy(img_semantic_numpy_aug_first8_transpose)
         # normalize
         if self.mean is not None or self.std is not None:
             normalize(img_lq, self.mean, self.std, inplace=True)
@@ -149,7 +156,7 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
             'gt': img_gt,
             'lq_path': lq_path,
             'gt_path': gt_path,
-            'semantic' : img_semantic_tensor_list,
+            'semantic' : img_semantic_numpy_aug_first8_tensor, #img_semantic_tensor_list,
             'semantic_path' : semantic_path
         }
 
