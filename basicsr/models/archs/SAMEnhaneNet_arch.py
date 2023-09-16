@@ -172,11 +172,11 @@ class SAMEnhaneNet(nn.Module):
         #self.freezed_sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
         #self.mask_generator = SamAutomaticMaskGenerator(self.freezed_sam)
 
-        self.naf_enhancenet = NAFNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num, enc_blk_nums=enc_blk_nums, dec_blk_nums=dec_blk_nums)
+        self.naf_enhancenet = NAFNet(img_channel=img_channel+(width//2), width=width, middle_blk_num=middle_blk_num, enc_blk_nums=enc_blk_nums, dec_blk_nums=dec_blk_nums)
 
         #image encoder
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=width, kernel_size=3, padding=1, stride=1, groups=1, bias=True)
-        self.conv1_1 = nn.Conv2d(in_channels=width, out_channels=width, kernel_size=1, padding=0, stride=1, groups=1, bias=True)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=width//2, kernel_size=3, padding=1, stride=1, groups=1, bias=True)
+        self.conv1_1 = nn.Conv2d(in_channels=width//2, out_channels=width//2, kernel_size=1, padding=0, stride=1, groups=1, bias=True)
         
     def forward(self, input): #这里mask直接使用字典吧
         image = input[:,0:3,:,:]
@@ -202,19 +202,16 @@ class SAMEnhaneNet(nn.Module):
             expanded_mask = mask_expanded.expand_as(x_I_enc)
 
             # 将图像与掩码相乘并计算均值
-            masked_x_I_enc = torch.masked_select(x_I_enc, expanded_mask).reshape(x_I_enc.shape)
+            masked_x_I_enc = torch.masked_select(x_I_enc, expanded_mask)
             mean_value = torch.mean(masked_x_I_enc)
 
             # 将均值赋值给掩码区域的所有像素
-            masked_x_I_enc[expanded_mask] = mean_value
+            x_I_enc[expanded_mask] = mean_value
 
             # 将图像转换回原始形状
-            masked_x_I_enc = masked_x_I_enc.permute(0, 3, 1, 2)
-
-            x_I_enc_fused += masked_x_I_enc
-
             x_I_enc = x_I_enc.permute(0, 3, 1, 2)
 
+            x_I_enc_fused += x_I_enc
         
         naf_input = torch.cat((image, x_I_enc_fused), dim=1)
         x = self.naf_enhancenet(naf_input)
