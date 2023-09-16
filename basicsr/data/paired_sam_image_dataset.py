@@ -111,7 +111,7 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
                 mask_list = dictionary[key]
                 for i in range(len(mask_list)):
                     single_mask = mask_utils.decode(mask_list[i]["segmentation"])
-                    single_mask = single_mask.astype(bool)
+                    single_mask = single_mask
                     img_semantic.append(single_mask)
 
         mask_count = len(img_semantic)
@@ -130,7 +130,10 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
             # flip, rotation augmentations
             if self.geometric_augs:
                 img_gt, img_lq, img_semantic_numpy_aug = random_augmentation(img_gt, img_lq, img_semantic_numpy_transpose)
-            
+        else:
+            img_semantic_numpy = np.array(img_semantic)
+            img_semantic_numpy_transpose = np.transpose(img_semantic_numpy, (1,2,0)) 
+            img_semantic_numpy_aug = img_semantic_numpy_transpose
         # BGR to RGB, HWC to CHW, numpy to tensor
         img_gt, img_lq = img2tensor([img_gt, img_lq],
                                     bgr2rgb=True,
@@ -143,16 +146,26 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
         start = 0  # 范围起始值
         end = mask_count  # 范围结束值
         count = 8  # 需要选择的整数数量
+        mask_size = (img_gt.shape[1], img_gt.shape[2])
+        if mask_count >= 8:
+            random_integers = random.sample(range(start, end), count)
 
-        random_integers = random.sample(range(start, end), count)
+            for i in random_integers:
+                single_mask = img_semantic_numpy_aug[:,:,i]
+                #single_mask = img_semantic_numpy_aug_list[i]
+                #single_mask_expend = np.expand_dims(single_mask, axis=2)
+                #print(single_mask_expend.shape)
+                #img_semantic_tensor = torch.from_numpy(single_mask_expend)
+                img_semantic_numpy_list.append(single_mask)
+        else:
+            for i in range(count):
+                if i < mask_count:
+                    single_mask = img_semantic_numpy_aug[:,:,i]
+                else:
+                    single_mask = np.ones(mask_size, dtype=bool)
 
-        for i in random_integers:
-            single_mask = img_semantic_numpy_aug[:,:,i]
-            #single_mask = img_semantic_numpy_aug_list[i]
-            #single_mask_expend = np.expand_dims(single_mask, axis=2)
-            #print(single_mask_expend.shape)
-            #img_semantic_tensor = torch.from_numpy(single_mask_expend)
-            img_semantic_numpy_list.append(single_mask)
+                img_semantic_numpy_list.append(single_mask)
+            
 
         #img_semantic_numpy_aug_first8 = img_semantic_numpy_aug[:,:,0:count]
         #img_semantic_numpy_aug_first8_transpose = np.transpose(img_semantic_numpy_aug_first8, (2,0,1))#将第三维置换到第一维
@@ -161,7 +174,7 @@ class Dataset_PairedSamImageMultipleMasks(data.Dataset):
         img_semantic_numpy_selected = np.array(img_semantic_numpy_list)
         #img_semantic_numpy_aug_first8_transpose = np.transpose(img_semantic_numpy_selected, (2,0,1))#将第三维置换到第一维
 
-        img_semantic_numpy_aug_first8_tensor = torch.from_numpy(img_semantic_numpy_selected) 
+        img_semantic_numpy_aug_first8_tensor = torch.from_numpy(img_semantic_numpy_selected).float()
         # normalize
         if self.mean is not None or self.std is not None:
             normalize(img_lq, self.mean, self.std, inplace=True)

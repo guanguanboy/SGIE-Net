@@ -55,7 +55,7 @@ datasets:
 # network structures
 network_g:
   type: SAMEnhaneNet
-  img_channel: 4
+  img_channel: 19
   width: 32
   enc_blk_nums: [1, 1, 1, 28]
   middle_blk_num: 1
@@ -102,7 +102,7 @@ train:
 # validation settings
 val:
   window_size: 16
-  val_freq: !!float 1e3
+  val_freq: !!float 1e1
   save_img: false
   rgb2bgr: true
   use_image: false
