@@ -208,11 +208,17 @@ class SAMEnhaneNet(nn.Module):
             # 将图像与掩码相乘并计算均值
             #masked_x_I_enc = torch.masked_select(x_I_enc_cloned, expanded_mask)
             masked_x_I_enc = x_I_enc_cloned*expanded_mask
-            mean_value = torch.mean(masked_x_I_enc)
+            channels_sum = torch.sum(masked_x_I_enc, dim=[1,2])
+            channels_pixel_count = (expanded_mask == True).sum(dim=[1,2])
+            mean_value = channels_sum/channels_pixel_count
 
             # 将均值赋值给掩码区域的所有像素
-            #x_I_enc_cloned[expanded_mask] = mean_value
-
+            #mean_value_expaned = mean_value
+            #x_I_enc_cloned[expanded_mask] = mean_value_expaned
+            for b in range(x_I_enc_cloned.shape[0]):
+                for i in range(x_I_enc_cloned.shape[3]):
+                    x_I_enc_cloned[b,:,:,i].masked_fill(expanded_mask[b,:,:,i], mean_value[b,i].squeeze())
+            
             x_I_enc_cloned_averaged = x_I_enc_cloned
             # 将图像转换回原始形状
             x_I_enc_cloned_averaged = x_I_enc_cloned_averaged.permute(0, 3, 1, 2)
@@ -258,7 +264,7 @@ if __name__ == '__main__':
     samenhancenet = SAMEnhaneNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num,
                       enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
     
-    input_sam_image = torch.randn(1, 11, 256, 256).cuda()
+    input_sam_image = torch.randn(2, 11, 256, 256).cuda()
 
     output_sam = samenhancenet(input_sam_image)
     print(output_sam.shape)
