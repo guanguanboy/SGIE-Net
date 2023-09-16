@@ -180,7 +180,7 @@ class SAMEnhaneNet(nn.Module):
         
     def forward(self, input): #这里mask直接使用字典吧
 
-        torch.autograd.set_detect_anomaly(True)
+        #torch.autograd.set_detect_anomaly(True)
 
         image = input[:,0:3,:,:].clone()
         masks = input[:,3:,:,:].clone().bool()
@@ -210,22 +210,30 @@ class SAMEnhaneNet(nn.Module):
             masked_x_I_enc = x_I_enc_cloned*expanded_mask
             channels_sum = torch.sum(masked_x_I_enc, dim=[1,2])
             channels_pixel_count = (expanded_mask == True).sum(dim=[1,2])
-            mean_value = channels_sum/channels_pixel_count
+            
+            mean_value = channels_sum/(channels_pixel_count + 1e-5)
 
             # 将均值赋值给掩码区域的所有像素
-            #mean_value_expaned = mean_value
-            #x_I_enc_cloned[expanded_mask] = mean_value_expaned
-            for b in range(x_I_enc_cloned.shape[0]):
-                for i in range(x_I_enc_cloned.shape[3]):
-                    x_I_enc_cloned[b,:,:,i].masked_fill(expanded_mask[b,:,:,i], mean_value[b,i].squeeze())
+            mean_value_expaned = mean_value.unsqueeze(1).unsqueeze(2)
+            x_I_enc_cloned = x_I_enc_cloned.where(expanded_mask == True, mean_value_expaned)
+            #print(selected.shape)
+
+            #for b in range(x_I_enc_cloned.shape[0]):
+            #    for i in range(x_I_enc_cloned.shape[3]):
+            #        x_I_enc_cloned[b,:,:,i].masked_fill(expanded_mask[b,:,:,i], mean_value[b,i].squeeze())
             
-            x_I_enc_cloned_averaged = x_I_enc_cloned
+            #x_I_enc_cloned_averaged = x_I_enc_cloned
+            #x_I_enc_cloned_averaged = x_I_enc_cloned
             # 将图像转换回原始形状
-            x_I_enc_cloned_averaged = x_I_enc_cloned_averaged.permute(0, 3, 1, 2)
+            #x_I_enc_cloned_averaged = x_I_enc_cloned_averaged.permute(0, 3, 1, 2)
 
-            x_I_enc_fused = x_I_enc_fused.clone() + x_I_enc_cloned_averaged
+            #x_I_enc_fused = x_I_enc_fused.clone() + x_I_enc_cloned_averaged
 
-            x_I_enc_cloned = x_I_enc_cloned_averaged
+            #x_I_enc_cloned = x_I_enc_cloned_averaged
+
+            x_I_enc_cloned = x_I_enc_cloned.permute(0, 3, 1, 2)
+
+            x_I_enc_fused = x_I_enc_fused.clone() + x_I_enc_cloned
         
         naf_input = torch.cat((image, x_I_enc_fused), dim=1)
         x = self.naf_enhancenet(naf_input)
