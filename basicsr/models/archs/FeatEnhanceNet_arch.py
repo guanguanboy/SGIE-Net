@@ -23,6 +23,8 @@ from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
+from Fuse_Block import FeatFuseBlock
+
 class SimpleGate(nn.Module):
     def forward(self, x):
         x1, x2 = x.chunk(2, dim=1)
@@ -99,6 +101,7 @@ class NAFNet(nn.Module):
         self.middle_blks = nn.ModuleList()
         self.ups = nn.ModuleList()
         self.downs = nn.ModuleList()
+        self.fuse = nn.ModuleList()
         self.fuse_transform = nn.ModuleList()
 
         chan = width
@@ -108,6 +111,8 @@ class NAFNet(nn.Module):
                     *[NAFBlock(chan) for _ in range(num)]
                 )
             )
+
+            self.fuse.append(FeatFuseBlock(chan,chan))
             self.downs.append(
                 nn.Conv2d(chan, 2*chan, 2, 2)
             )
@@ -167,8 +172,9 @@ class NAFNet(nn.Module):
         
         encs = []
 
-        for encoder, down, fuse_transform in zip(self.encoders, self.downs, self.fuse_transform):
-            x = encoder(x + hq_features)
+        for encoder, fuse, down, fuse_transform in zip(self.encoders, self.fuse, self.downs, self.fuse_transform):
+            fused_x = fuse(x, hq_features)
+            x = encoder(fused_x)
             encs.append(x)
             x = down(x)
             hq_features = fuse_transform(hq_features)
