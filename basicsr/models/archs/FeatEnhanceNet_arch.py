@@ -99,6 +99,7 @@ class NAFNet(nn.Module):
         self.middle_blks = nn.ModuleList()
         self.ups = nn.ModuleList()
         self.downs = nn.ModuleList()
+        self.fuse_transform = nn.ModuleList()
 
         chan = width
         for num in enc_blk_nums:
@@ -110,6 +111,9 @@ class NAFNet(nn.Module):
             self.downs.append(
                 nn.Conv2d(chan, 2*chan, 2, 2)
             )
+
+            self.fuse_transform.append(nn.Conv2d(chan, 2*chan, 2, 2))
+
             chan = chan * 2
 
         self.middle_blks = \
@@ -133,18 +137,41 @@ class NAFNet(nn.Module):
 
         self.padder_size = 2 ** len(self.encoders)
 
-    def forward(self, inp):
+        # three conv fusion layers for obtaining HQ-Feature
+        vit_dim = 1280
+        transformer_dim = 256
+        self.compress_vit_feat = nn.Sequential(
+                                        nn.ConvTranspose2d(vit_dim, transformer_dim, kernel_size=2, stride=2),
+                                        LayerNorm2d(transformer_dim),
+                                        nn.GELU(), 
+                                        nn.ConvTranspose2d(transformer_dim, transformer_dim // 8, kernel_size=2, stride=2))
+        
+        self.embedding_encoder = nn.Sequential(
+                                        nn.ConvTranspose2d(transformer_dim, transformer_dim // 4, kernel_size=2, stride=2),
+                                        LayerNorm2d(transformer_dim // 4),
+                                        nn.GELU(),
+                                        nn.ConvTranspose2d(transformer_dim // 4, transformer_dim // 8, kernel_size=2, stride=2),
+                                    )        
+
+    def forward(self, inp, inter_feats, deep_feats):
         B, C, H, W = inp.shape
         inp = self.check_image_size(inp)
 
         x = self.intro(inp)
-
+        ealsy_inter_feat = inter_feats[0]
+        hq_features_list = []
+        
+        vit_features = ealsy_inter_feat.permute(0, 3, 1, 2) # early-layer ViT feature, after 1st global attention block in ViT
+        hq_features = self.embedding_encoder(deep_feats) + self.compress_vit_feat(vit_features)
+        #hq_features_list.append(hq_features)
+        
         encs = []
 
-        for encoder, down in zip(self.encoders, self.downs):
-            x = encoder(x)
+        for encoder, down, fuse_transform in zip(self.encoders, self.downs, self.fuse_transform):
+            x = encoder(x + hq_features)
             encs.append(x)
             x = down(x)
+            hq_features = fuse_transform(hq_features)
 
         x = self.middle_blks(x)
 
@@ -201,60 +228,9 @@ class FeatEnhanceNet(nn.Module):
             dict_input['original_size'] = image[b_i].shape[1:3]
             batched_input.append(dict_input)
 
-        batched_output, interm_embeddings = self.freezed_sam(batched_input, multimask_output=False)
+        batched_output, interm_embeddings, image_embeddings = self.freezed_sam(batched_input, multimask_output=False)
 
-        #encode image
-        x = self.conv1(image)
-        x_I_enc = self.conv1_1(x)
-
-        x_I_enc_fused = torch.zeros_like(x_I_enc) #I_map
-        #遍历mask每一个mask都乘以x_I_enc
-
-        x_I_enc_cloned = x_I_enc.clone()
-        mask_count = masks.shape[1]
-        for i in range(mask_count):
-            mask = masks[:,i,:,:]
-            # 将 image 的通道维度放在最后一维
-            x_I_enc_cloned = x_I_enc_cloned.permute(0, 2, 3, 1)
-
-            # 将掩码扩展到与图像相同的通道数
-            mask_expanded = mask.unsqueeze(1)
-            mask_expanded = mask_expanded.permute(0, 2, 3, 1)
-
-            expanded_mask = mask_expanded.expand_as(x_I_enc_cloned)
-
-            # 将图像与掩码相乘并计算均值
-            #masked_x_I_enc = torch.masked_select(x_I_enc_cloned, expanded_mask)
-            masked_x_I_enc = x_I_enc_cloned*expanded_mask
-            channels_sum = torch.sum(masked_x_I_enc, dim=[1,2])
-            channels_pixel_count = (expanded_mask == True).sum(dim=[1,2])
-            
-            mean_value = channels_sum/(channels_pixel_count + 1e-5)
-
-            # 将均值赋值给掩码区域的所有像素
-            mean_value_expaned = mean_value.unsqueeze(1).unsqueeze(2)
-            x_I_enc_cloned = x_I_enc_cloned.where(expanded_mask == True, mean_value_expaned)
-            #print(selected.shape)
-
-            #for b in range(x_I_enc_cloned.shape[0]):
-            #    for i in range(x_I_enc_cloned.shape[3]):
-            #        x_I_enc_cloned[b,:,:,i].masked_fill(expanded_mask[b,:,:,i], mean_value[b,i].squeeze())
-            
-            #x_I_enc_cloned_averaged = x_I_enc_cloned
-            #x_I_enc_cloned_averaged = x_I_enc_cloned
-            # 将图像转换回原始形状
-            #x_I_enc_cloned_averaged = x_I_enc_cloned_averaged.permute(0, 3, 1, 2)
-
-            #x_I_enc_fused = x_I_enc_fused.clone() + x_I_enc_cloned_averaged
-
-            #x_I_enc_cloned = x_I_enc_cloned_averaged
-
-            x_I_enc_cloned = x_I_enc_cloned.permute(0, 3, 1, 2)
-
-            x_I_enc_fused = x_I_enc_fused.clone() + x_I_enc_cloned
-        
-        naf_input = torch.cat((image, x_I_enc_fused), dim=1)
-        x = self.naf_enhancenet(naf_input)
+        x = self.naf_enhancenet(image, interm_embeddings, image_embeddings)
 
         return x
 
@@ -277,19 +253,20 @@ if __name__ == '__main__':
     middle_blk_num = 1
     dec_blks = [1, 1, 1, 1]
     
-    net = NAFNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num,
-                      enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
+    #net = NAFNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num,
+                      #enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
 
 
-    inp_shape = (3, 256, 256)
+    #inp_shape = (3, 256, 256)
 
     inp_img = torch.randn(1, 3, 256, 256).cuda()
     #output = net(inp_img)
     #print(output.shape)
 
-    samenhancenet = FeatEnhanceNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num, enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
+    samenhancenet = FeatEnhanceNet(img_channel=3, width=width, middle_blk_num=middle_blk_num, enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
     
-    input_sam_image = torch.randn(2, 11, 256, 256).cuda()
+    input_sam_image = torch.randn(2, 3, 256, 256).cuda()
 
+    inter_meditate_feats = torch.randn(2, 11, 256, 256).cuda()
     output_sam = samenhancenet(input_sam_image)
     print(output_sam.shape)
