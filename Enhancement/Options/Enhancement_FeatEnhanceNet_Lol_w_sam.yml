@@ -10,9 +10,9 @@ datasets:
   train:
     name: TrainSet
     type: Dataset_PairedSamImage
-    dataroot_gt: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/our485/high
-    dataroot_lq: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/our485/low
-    dataroot_semantic: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/our485/low_semantic_gray
+    dataroot_gt: ./Enhancement/Datasets/our485/high
+    dataroot_lq: ./Enhancement/Datasets/our485/low
+    dataroot_semantic: ./Enhancement/Datasets/our485/low_semantic_gray
     geometric_augs: true
 
     filename_tmpl: '{}'
@@ -22,10 +22,10 @@ datasets:
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 8
+    batch_size_per_gpu: 2
 
     ### -------------Progressive training--------------------------
-    mini_batch_sizes: [16,16,8,4,4]             # Batch size per gpu   
+    mini_batch_sizes: [2,2,1,1,1]             # Batch size per gpu   
     iters: [46000,32000,32000,28000,12000]
     gt_size: 384   # Max patch size for progressive training
     gt_sizes: [128,192,256,320,384]  # Patch sizes for progressive training.
@@ -44,16 +44,16 @@ datasets:
   val:
     name: ValSet
     type: Dataset_PairedSamImage
-    dataroot_gt: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/eval15/high
-    dataroot_lq: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/eval15/low
-    dataroot_semantic: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/eval15/low_semantic_gray
+    dataroot_gt: ./Enhancement/Datasets/eval15/high
+    dataroot_lq: ./Enhancement/Datasets/eval15/low
+    dataroot_semantic: ./Enhancement/Datasets/eval15/low_semantic_gray
     io_backend:
       type: disk
 
 # network structures
 network_g:
-  type: NAFNet
-  img_channel: 4
+  type: FeatEnhanceNet
+  img_channel: 3
   width: 32
   enc_blk_nums: [1, 1, 1, 28]
   middle_blk_num: 1
