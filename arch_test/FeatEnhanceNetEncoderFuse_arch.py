@@ -136,6 +136,7 @@ class NAFNet(nn.Module):
         self.weight_list = []
 
         chan = width
+        scale_factor = 2
         for num in enc_blk_nums:
             self.encoders.append(
                 nn.Sequential(
@@ -150,9 +151,10 @@ class NAFNet(nn.Module):
                 nn.Conv2d(chan, 2*chan, 2, 2)
             )
 
-            self.fuse_transform.append(nn.Conv2d(width, 2*chan, 2, 2))
+            self.fuse_transform.append(nn.Conv2d(width, 2*chan, scale_factor, scale_factor))
 
             chan = chan * 2
+            scale_factor = scale_factor * 2
 
         self.middle_blks = \
             nn.Sequential(
