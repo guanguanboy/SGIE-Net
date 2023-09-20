@@ -150,7 +150,7 @@ class NAFNet(nn.Module):
                 nn.Conv2d(chan, 2*chan, 2, 2)
             )
 
-            self.fuse_transform.append(nn.Conv2d(chan, 2*chan, 2, 2))
+            self.fuse_transform.append(nn.Conv2d(width, 2*chan, 2, 2))
 
             chan = chan * 2
 
