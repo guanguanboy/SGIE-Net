@@ -21,9 +21,9 @@ from basicsr.models.archs.arch_util import LayerNorm2d
 from basicsr.models.archs.local_arch import Local_Base
 from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+#os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
-from Fuse_Block import FeatFuseBlock
+from basicsr.models.archs.Fuse_Block import FeatFuseBlock,FeatFuseBlockSimple
 
 class SimpleGate(nn.Module):
     def forward(self, x):
@@ -103,6 +103,7 @@ class NAFNet(nn.Module):
         self.downs = nn.ModuleList()
         self.fuse = nn.ModuleList()
         self.fuse_transform = nn.ModuleList()
+        self.weight_list = []
 
         chan = width
         for num in enc_blk_nums:
@@ -112,7 +113,8 @@ class NAFNet(nn.Module):
                 )
             )
 
-            self.fuse.append(FeatFuseBlock(chan,chan))
+            self.fuse.append(FeatFuseBlockSimple(chan,chan))
+
             self.downs.append(
                 nn.Conv2d(chan, 2*chan, 2, 2)
             )
@@ -158,6 +160,7 @@ class NAFNet(nn.Module):
                                         nn.ConvTranspose2d(transformer_dim // 4, transformer_dim // 8, kernel_size=2, stride=2),
                                     )        
 
+        
     def forward(self, inp, inter_feats, deep_feats):
         B, C, H, W = inp.shape
         inp = self.check_image_size(inp)
@@ -173,7 +176,7 @@ class NAFNet(nn.Module):
         encs = []
 
         for encoder, fuse, down, fuse_transform in zip(self.encoders, self.fuse, self.downs, self.fuse_transform):
-            fused_x = fuse(x, hq_features)
+            fused_x = fuse(x,hq_features)
             x = encoder(fused_x)
             encs.append(x)
             x = down(x)
@@ -271,7 +274,7 @@ if __name__ == '__main__':
 
     samenhancenet = FeatEnhanceNet(img_channel=3, width=width, middle_blk_num=middle_blk_num, enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
     
-    input_sam_image = torch.randn(2, 3, 256, 256).cuda()
+    input_sam_image = torch.randn(2, 3, 128, 128).cuda()
 
     inter_meditate_feats = torch.randn(2, 11, 256, 256).cuda()
     output_sam = samenhancenet(input_sam_image)

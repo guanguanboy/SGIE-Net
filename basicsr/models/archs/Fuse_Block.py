@@ -202,7 +202,22 @@ class FeatFuseBlock(nn.Module):
 
         return input_R
 
+class FeatFuseBlockSimple(nn.Module):
+    def __init__(self, dim_2, dim):
+        super(FeatFuseBlockSimple, self).__init__()
 
+        self.conv1 = nn.Conv2d(dim_2, dim, (1, 1))
+        self.weight = torch.nn.Parameter(torch.zeros((1, dim, 1, 1)),requires_grad=True)
+
+    def forward(self, input_R, input_S):
+        # input_ch = input_R.size()[1]
+        input_S = F.interpolate(input_S, [input_R.shape[2], input_R.shape[3]])
+        input_S = self.conv1(input_S)
+       
+        input_R = input_R + self.weight * input_S
+
+        return input_R
+    
 ##########################################################################
 
 
