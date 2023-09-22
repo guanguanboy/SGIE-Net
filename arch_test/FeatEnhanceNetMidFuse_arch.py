@@ -242,7 +242,7 @@ class NAFNet(nn.Module):
         x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h))
         return x
     
-class FeatEnhanceNet(nn.Module):
+class FeatEnhanceNetMidFuse(nn.Module):
 
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
@@ -313,7 +313,7 @@ if __name__ == '__main__':
     #output = net(inp_img)
     #print(output.shape)
 
-    samenhancenet = FeatEnhanceNet(img_channel=3, width=width, middle_blk_num=middle_blk_num, enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
+    samenhancenet = FeatEnhanceNetMidFuse(img_channel=3, width=width, middle_blk_num=middle_blk_num, enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
     
     input_sam_image = torch.randn(2, 3, 256, 256).cuda()
 
