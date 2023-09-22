@@ -50,7 +50,7 @@ datasets:
 
 # network structures
 network_g:
-  type: NAFNet
+  type: NAFNetOrigin
   img_channel: 3
   width: 32
   enc_blk_nums: [1, 1, 1, 28]
