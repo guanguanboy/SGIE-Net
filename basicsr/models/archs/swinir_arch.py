@@ -857,7 +857,7 @@ if __name__ == '__main__':
     window_size = 8
     height = 256 
     width = 256
-    device = torch.device('cuda:1')
+    device = torch.device('cuda:0')
 
     model = SwinIR(upscale=1, in_chans=4, img_size=(256, 256),
                    window_size=window_size, img_range=1., depths=[6, 6, 6, 6],

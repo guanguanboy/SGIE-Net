@@ -1,5 +1,5 @@
 # general settings
-name: Enhancement_FeatEnhanceNet_0919
+name: Enhancement_FeatEnhanceNet_0920
 model_type: ImageSamCleanModel
 scale: 1
 num_gpu: 4  # set num_gpu: 0 for cpu mode

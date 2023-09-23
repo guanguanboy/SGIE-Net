@@ -225,9 +225,9 @@ class NAFNet(nn.Module):
 
         vit_deep_feats = self.embedding_deep_encoder(deep_feats)
         vit_deep_feats = F.interpolate(vit_deep_feats, [x.shape[2], x.shape[3]])
-        #x = x + vit_deep_feats
+        x = x + vit_deep_feats
         #ajusted_feats = self.adjust_layer(vit_deep_feats)
-        x = self.fuse_layer(x,vit_deep_feats)
+        #x = self.fuse_layer(x,vit_deep_feats)
         for decoder, up, enc_skip in zip(self.decoders, self.ups, encs[::-1]):
             x = up(x)
             x = x + enc_skip
