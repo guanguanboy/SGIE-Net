@@ -326,7 +326,7 @@ class TransformerBlock(nn.Module):
         return x
     
 
-class NAFRestormrer(nn.Module):
+class NAFRestormer(nn.Module):
 
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
@@ -425,7 +425,7 @@ if __name__ == '__main__':
     middle_blk_num = 1
     dec_blks = [1, 1, 1, 1]
     
-    net = NAFRestormrer(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num,
+    net = NAFRestormer(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num,
                       enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
 
 
