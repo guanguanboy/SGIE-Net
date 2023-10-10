@@ -177,13 +177,11 @@ def main():
     if resume_state:  # resume training
         check_resume(opt, resume_state['iter'])
         model = create_model(opt)
-        #model.resume_training(resume_state)  # handle optimizers and schedulers
+        model.resume_training(resume_state)  # handle optimizers and schedulers
         logger.info(f"Resuming training from epoch: {resume_state['epoch']}, "
                     f"iter: {resume_state['iter']}.")
-        #start_epoch = resume_state['epoch']
-        #current_iter = resume_state['iter']
-        start_epoch = 0
-        current_iter = 0
+        start_epoch = resume_state['epoch']
+        current_iter = resume_state['iter']
     else:
         model = create_model(opt)
         start_epoch = 0
