@@ -57,9 +57,9 @@ network_g:
   type: NAFRestormer
   img_channel: 4
   width: 32
-  enc_blk_nums: [1, 1, 1, 28]
-  middle_blk_num: 1
-  dec_blk_nums: [1, 1, 1, 1]
+  enc_blk_nums: [2, 2, 2, 2]
+  middle_blk_num: 4
+  dec_blk_nums: [2, 2, 2, 2]
 
 # path
 path:
