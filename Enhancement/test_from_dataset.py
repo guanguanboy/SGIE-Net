@@ -90,7 +90,7 @@ model_restoration = nn.DataParallel(model_restoration)
 model_restoration.eval()
 
 # 生成输出结果的文件
-factor = 4
+factor = 16
 dataset = args.dataset
 config = os.path.basename(args.opt).split('.')[0]
 checkpoint_name = os.path.basename(args.weights).split('.')[0]
@@ -107,6 +107,8 @@ if dataset in ['SID', 'SMID', 'SDSD_indoor', 'SDSD_outdoor']:
     os.makedirs(result_dir_gt, exist_ok=True)
     if dataset == 'SID':
         from basicsr.data.SID_image_dataset import Dataset_SIDImage as Dataset
+    elif dataset == 'Dataset_PairedWithGrayIllumImage':
+        from basicsr.data.paired_image_dataset import Dataset_PairedWithGrayIllumImage as Dataset
     elif dataset == 'SMID':
         from basicsr.data.SMID_image_dataset import Dataset_SMIDImage as Dataset
     else:
@@ -163,6 +165,71 @@ if dataset in ['SID', 'SMID', 'SDSD_indoor', 'SDSD_outdoor']:
                 os.path.split(inp_path)[-1])[0] + '.png')), img_as_ubyte(input_save))
             utils.save_img((os.path.join(result_dir_gt, type_id, os.path.splitext(
                 os.path.split(inp_path)[-1])[0] + '.png')), img_as_ubyte(target))
+            
+elif dataset in ['Dataset_PairedWithGrayIllumImage']:
+
+    os.makedirs(result_dir_input, exist_ok=True)
+    os.makedirs(result_dir_gt, exist_ok=True)
+    if dataset == 'Dataset_PairedWithGrayIllumImage':
+        from basicsr.data.paired_image_dataset import Dataset_PairedWithGrayIllumImage as Dataset
+    
+    opt = opt['datasets']['val']
+    opt['phase'] = 'test'
+    if opt.get('scale') is None:
+        opt['scale'] = 1
+    if '~' in opt['dataroot_gt']:
+        opt['dataroot_gt'] = os.path.expanduser('~') + opt['dataroot_gt'][1:]
+    if '~' in opt['dataroot_lq']:
+        opt['dataroot_lq'] = os.path.expanduser('~') + opt['dataroot_lq'][1:]
+    dataset = Dataset(opt)
+    print(f'test dataset length: {len(dataset)}')
+    dataloader = DataLoader(dataset=dataset, batch_size=1, shuffle=False)
+    with torch.inference_mode():
+        for data_batch in tqdm(dataloader):
+            torch.cuda.ipc_collect()
+            torch.cuda.empty_cache()
+
+            input_ = data_batch['lq']
+            input_save = data_batch['lq'].cpu().permute(
+                0, 2, 3, 1).squeeze(0).numpy()
+            target = data_batch['gt'].cpu().permute(
+                0, 2, 3, 1).squeeze(0).numpy()
+            inp_path = data_batch['lq_path'][0]
+
+            semantic_ = data_batch['semantic']
+
+            # Padding in case images are not multiples of 4
+            h, w = input_.shape[2], input_.shape[3]
+            H, W = ((h + factor) // factor) * \
+                factor, ((w + factor) // factor) * factor
+            padh = H - h if h % factor != 0 else 0
+            padw = W - w if w % factor != 0 else 0
+            input_ = F.pad(input_, (0, padw, 0, padh), 'reflect')
+            semantic_ = F.pad(semantic_, (0, padw, 0, padh), 'reflect')
+
+
+            restored = model_restoration(torch.cat([input_, semantic_], dim=1))
+
+            # Unpad images to original dimensions
+            restored = restored[:, :, :h, :w]
+
+            restored = torch.clamp(restored, 0, 1).cpu(
+            ).detach().permute(0, 2, 3, 1).squeeze(0).numpy()
+
+            psnr.append(utils.PSNR(target, restored))
+            ssim.append(utils.calculate_ssim(
+                img_as_ubyte(target), img_as_ubyte(restored)))
+            type_id = os.path.dirname(inp_path).split('/')[-1]
+            os.makedirs(os.path.join(result_dir, type_id), exist_ok=True)
+            os.makedirs(os.path.join(result_dir_input, type_id), exist_ok=True)
+            os.makedirs(os.path.join(result_dir_gt, type_id), exist_ok=True)
+            utils.save_img((os.path.join(result_dir, type_id, os.path.splitext(
+                os.path.split(inp_path)[-1])[0] + '.png')), img_as_ubyte(restored))
+            utils.save_img((os.path.join(result_dir_input, type_id, os.path.splitext(
+                os.path.split(inp_path)[-1])[0] + '.png')), img_as_ubyte(input_save))
+            utils.save_img((os.path.join(result_dir_gt, type_id, os.path.splitext(
+                os.path.split(inp_path)[-1])[0] + '.png')), img_as_ubyte(target))
+            
 else:
 
     input_dir = opt['datasets']['val']['dataroot_lq']
