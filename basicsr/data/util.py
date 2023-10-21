@@ -145,6 +145,26 @@ def read_img_seq(path, size=None):
     imgs = torch.from_numpy(np.ascontiguousarray(np.transpose(imgs, (0, 3, 1, 2)))).float()
     return imgs
 
+def read_img_seq_gray(path, size=None):
+    """Read a sequence of images from a given folder path
+    Args:
+        path (list/str): list of image paths/image folder path
+
+    Returns:
+        imgs (Tensor): size (T, C, H, W), RGB, [0, 1]
+    """
+    # print(path)
+    if type(path) is list:
+        img_path_l = path
+    else:
+        img_path_l = sorted(glob.glob(os.path.join(path, '*')))
+
+    img_l = [read_img(None, v, size) for v in img_path_l]
+    # stack to Torch tensor
+    imgs = np.stack(img_l, axis=0)
+
+    imgs = torch.from_numpy(np.ascontiguousarray(np.transpose(imgs, (0, 3, 1, 2)))).float()
+    return imgs
 
 def read_img_seq2(path, size=None):
     """Read a sequence of images from a given folder path
