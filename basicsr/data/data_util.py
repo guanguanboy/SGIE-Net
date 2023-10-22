@@ -408,6 +408,64 @@ def tripled_paths_w_mask_from_folder(folders, keys, filename_tmpl):
                   (f'{sem_key}_path', sem_path)]))
     return paths
 
+def tripled_paths_from_folder_lolv2(folders, keys, filename_tmpl):
+    """Generate paired paths from folders.
+
+    Args:
+        folders (list[str]): A list of folder path. The order of list should
+            be [input_folder, gt_folder].
+        keys (list[str]): A list of keys identifying folders. The order should
+            be in consistent with folders, e.g., ['lq', 'gt'].
+        filename_tmpl (str): Template for each filename. Note that the
+            template excludes the file extension. Usually the filename_tmpl is
+            for files in the input folder.
+
+    Returns:
+        list[str]: Returned path list.
+    """
+    assert len(folders) == 3, (
+        'The len of folders should be 2 with [input_folder, gt_folder]. '
+        f'But got {len(folders)}')
+    assert len(keys) == 3, (
+        'The len of keys should be 2 with [input_key, gt_key]. '
+        f'But got {len(keys)}')
+    input_folder, gt_folder,sem_folder = folders
+    input_key, gt_key,sem_key = keys
+
+    input_paths = list(scandir(input_folder))
+    gt_paths = list(scandir(gt_folder))
+    sem_paths = list(scandir(sem_folder))
+
+    assert len(input_paths) == len(gt_paths), (
+        f'{input_key} and {gt_key} datasets have different number of images: '
+        f'{len(input_paths)}, {len(gt_paths)}.')
+    paths = []
+    for idx in range(len(gt_paths)):
+        gt_path = gt_paths[idx]
+        basename, ext = osp.splitext(osp.basename(gt_path))
+        input_path = input_paths[idx]
+        basename_input, ext_input = osp.splitext(osp.basename(input_path))
+        basename_low = 'low' + basename[6:]
+        input_name = f'{filename_tmpl.format(basename_low)}{ext_input}'
+        input_path = osp.join(input_folder, input_name)
+        
+        assert input_name in input_paths, (f'{input_name} is not in '
+                                           f'{input_key}_paths.')
+        
+        sem_path = sem_paths[idx]
+        basename_input, ext_input = osp.splitext(osp.basename(sem_path))
+        sem_name = f'{filename_tmpl.format(basename_low)}'+'_semantic' + f'{ext_input}'
+        sem_path = osp.join(sem_folder, sem_name)
+        assert sem_name in sem_paths, (f'{sem_name} is not in '
+                                           f'{sem_key}_paths.')
+        
+        gt_path = osp.join(gt_folder, gt_path)
+        paths.append(
+            dict([(f'{input_key}_path', input_path),
+                  (f'{gt_key}_path', gt_path),
+                  (f'{sem_key}_path', sem_path)]))
+    return paths
+
 def tripled_paths_json_from_folder(folders, keys, filename_tmpl):
     """Generate paired paths from folders.
 
