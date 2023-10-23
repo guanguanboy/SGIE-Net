@@ -114,7 +114,7 @@ class Dataset_SIDImageSemantic(data.Dataset):
             img_SM = rlt[2]
 
         elif self.opt['phase'] == 'test':
-            img_LQ = util.read_img_seq(img_LQ_path, self.opt['train_size'])
+            img_LQ = util.read_img_seq2(img_LQ_path, self.opt['train_size'])
             img_GT = util.read_img_seq2(img_GT_path, self.opt['train_size'])
             img_LQ = img_LQ[0]
             img_GT = img_GT[0]
