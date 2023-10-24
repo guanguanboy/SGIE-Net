@@ -549,7 +549,7 @@ class Dataset_PairedSamGrayIllImage(data.Dataset):
         img_gray_illum = 1. - (0.299*r+0.587*g+0.114*b)/2.
         img_gray_illum = torch.unsqueeze(img_gray_illum, 0)
 
-        semantic = torch.cat([img_semantic, img_gray_illum])
+        semantic = torch.cat([img_semantic, img_gray_illum],dim=0)
         return {
             'lq': img_lq,
             'gt': img_gt,
@@ -675,7 +675,7 @@ class Dataset_PairedSamGrayIllImage_LOLv2(data.Dataset):
         img_gray_illum = 1. - (0.299*r+0.587*g+0.114*b)/2.
         img_gray_illum = torch.unsqueeze(img_gray_illum, 0)
 
-        semantic = torch.cat([img_semantic, img_gray_illum],dim=1)
+        semantic = torch.cat([img_semantic, img_gray_illum],dim=0)
 
         return {
             'lq': img_lq,

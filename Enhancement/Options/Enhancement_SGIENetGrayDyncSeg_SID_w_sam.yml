@@ -1,5 +1,5 @@
 # general settings
-name: Enhancement_SGIENetGrayDyncSeg_lolv1_sam_1024
+name: Enhancement_SGIENetGrayDyncSeg_SID_gray_sam_high_1024
 model_type: ImageSamCleanModel
 scale: 1
 num_gpu: 4  # set num_gpu: 0 for cpu mode
@@ -9,16 +9,26 @@ manual_seed: 100
 datasets:
   train:
     name: TrainSet
-    type: Dataset_PairedSamGrayIllImage
-    dataroot_gt: ./Enhancement/Datasets/our485/high
-    dataroot_lq: ./Enhancement/Datasets/our485/low
-    dataroot_semantic: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/our485/low_semantic_gray
-    #dataroot_semantic: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/our485/low_semantic_gray_sorted_reverted
-    geometric_augs: true
+    type: Dataset_SIDSamGrayIllImage
+    dataroot_gt: /data/liguanlin/Datasets/LowLight/long_sid2
+    dataroot_lq: /data/liguanlin/Datasets/LowLight/short_sid2
+    dataroot_semantic: /data/liguanlin/Datasets/LowLight/short_sid2_semantic_gray
+    random_reverse: false
+    border_mode: false
+    train_size: [960, 512]
+    cache_keys: ~
+    cache_data: true
+    padding: new_info
 
     filename_tmpl: '{}'
     io_backend:
       type: disk
+
+    N_frames: 5     # how many frames as a input.
+    # data argument
+    use_flip: true
+    use_rot: true
+    color: RGB
 
     # data loader
     use_shuffle: true
@@ -44,11 +54,15 @@ datasets:
 
   val:
     name: ValSet
-    type: Dataset_PairedSamGrayIllImage
-    dataroot_gt: ./Enhancement/Datasets/eval15/high
-    dataroot_lq: ./Enhancement/Datasets/eval15/low
-    dataroot_semantic: ./Enhancement/Datasets/eval15/low_semantic_gray
-    #dataroot_semantic: ./Enhancement/Datasets/eval15/low_semantic_gray
+    type: Dataset_SIDSamGrayIllImage
+    dataroot_gt: /data/liguanlin/Datasets/LowLight/long_sid2
+    dataroot_lq: /data/liguanlin/Datasets/LowLight/short_sid2
+    dataroot_semantic: /data/liguanlin/Datasets/LowLight/short_sid2_semantic_gray
+    cache_data: true
+    N_frames: 5
+    padding: new_info
+    train_size: [960, 512]
+
     io_backend:
       type: disk
 

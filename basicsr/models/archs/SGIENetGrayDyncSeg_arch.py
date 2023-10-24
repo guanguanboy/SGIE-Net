@@ -435,7 +435,13 @@ class Illumination_Estimator(nn.Module):
 
         self.depth_conv = nn.Conv2d(
             n_fea_middle, n_fea_middle, kernel_size=5, padding=2, bias=True, groups=n_fea_in)
+        
+        self.down = nn.Conv2d(n_fea_middle, n_fea_middle, 2, 2)
+
         self.dr_conv = DRConv2d(n_fea_middle, n_fea_middle, kernel_size=1)
+
+        self.double_channel = nn.Conv2d(n_fea_middle, n_fea_middle * 2, 1, bias=False)
+        self.up = nn.PixelShuffle(2)
 
         self.conv2 = nn.Conv2d(n_fea_middle, n_fea_out, kernel_size=1, bias=True)
 
@@ -451,8 +457,11 @@ class Illumination_Estimator(nn.Module):
         input = torch.cat([img,gray_illumin], dim=1)
 
         x_1 = self.conv1(input)
-        illu_fea = self.depth_conv(x_1)
+        x_1 = self.depth_conv(x_1)
+        illu_fea = self.down(x_1)
         illu_fea = self.dr_conv(illu_fea)
+        illu_fea = self.double_channel(illu_fea)
+        illu_fea = self.up(illu_fea)
         illu_map = self.conv2(illu_fea)
         return illu_fea, illu_map
 
@@ -496,6 +505,7 @@ class Illumination_seg_gray_ill_Estimator(nn.Module):
 
         self.depth_conv = nn.Conv2d(
             n_fea_middle, n_fea_middle, kernel_size=5, padding=2, bias=True, groups=n_fea_in)
+        
         self.dr_conv = DRConv2d(n_fea_middle, n_fea_middle, kernel_size=1)
 
         self.conv2 = nn.Conv2d(n_fea_middle, n_fea_out, kernel_size=1, bias=True)

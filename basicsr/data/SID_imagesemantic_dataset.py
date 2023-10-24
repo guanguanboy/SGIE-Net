@@ -273,7 +273,7 @@ class Dataset_SIDSamGrayIllImage(data.Dataset):
         img_gray_illum = 1. - (0.299*r+0.587*g+0.114*b)/2.
         img_gray_illum = torch.unsqueeze(img_gray_illum, 0)
 
-        semantic = torch.cat([img_SM, img_gray_illum],dim=1)
+        semantic = torch.cat([img_SM, img_gray_illum],dim=0)
 
         return {
             'lq': img_LQ,

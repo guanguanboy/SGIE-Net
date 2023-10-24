@@ -1,5 +1,5 @@
 # general settings
-name: Enhancement_SGIENetGrayDyncSeg_lolv1_sam_1024
+name: Enhancement_SGIENetGrayDyncSeg_lolv2_synthetic_sam_1024
 model_type: ImageSamCleanModel
 scale: 1
 num_gpu: 4  # set num_gpu: 0 for cpu mode
@@ -10,10 +10,10 @@ datasets:
   train:
     name: TrainSet
     type: Dataset_PairedSamGrayIllImage
-    dataroot_gt: ./Enhancement/Datasets/our485/high
-    dataroot_lq: ./Enhancement/Datasets/our485/low
-    dataroot_semantic: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/our485/low_semantic_gray
-    #dataroot_semantic: /data/liguanlin/codes/MIRNetv2/Enhancement/Datasets/our485/low_semantic_gray_sorted_reverted
+    dataroot_gt: /data/liguanlin/Datasets/LowLight/LOL-v2/Synthetic/Train/Normal
+    dataroot_lq:  /data/liguanlin/Datasets/LowLight/LOL-v2/Synthetic/Train/Low
+    dataroot_semantic: /data/liguanlin/Datasets/LowLight/LOL-v2/Synthetic/Train/Low_semantic_gray
+
     geometric_augs: true
 
     filename_tmpl: '{}'
@@ -45,9 +45,9 @@ datasets:
   val:
     name: ValSet
     type: Dataset_PairedSamGrayIllImage
-    dataroot_gt: ./Enhancement/Datasets/eval15/high
-    dataroot_lq: ./Enhancement/Datasets/eval15/low
-    dataroot_semantic: ./Enhancement/Datasets/eval15/low_semantic_gray
+    dataroot_gt: /data/liguanlin/Datasets/LowLight/LOL-v2/Synthetic/Test/Normal
+    dataroot_lq: /data/liguanlin/Datasets/LowLight/LOL-v2/Synthetic/Test/Low
+    dataroot_semantic: /data/liguanlin/Datasets/LowLight/LOL-v2/Synthetic/Test/Low_semantic_gray
     #dataroot_semantic: ./Enhancement/Datasets/eval15/low_semantic_gray
     io_backend:
       type: disk
