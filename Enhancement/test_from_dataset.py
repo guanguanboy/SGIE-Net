@@ -168,7 +168,7 @@ if dataset in ['SID', 'SMID', 'SDSD_indoor', 'SDSD_outdoor']:
             utils.save_img((os.path.join(result_dir_gt, type_id, os.path.splitext(
                 os.path.split(inp_path)[-1])[0] + '.png')), img_as_ubyte(target))
             
-elif dataset in ['Dataset_PairedWithGrayIllumImage','SID_SAM']:
+elif dataset in ['Dataset_PairedWithGrayIllumImage','SID_SAM','LOLv2']:
 
     os.makedirs(result_dir_input, exist_ok=True)
     os.makedirs(result_dir_gt, exist_ok=True)
@@ -176,6 +176,9 @@ elif dataset in ['Dataset_PairedWithGrayIllumImage','SID_SAM']:
         from basicsr.data.paired_image_dataset import Dataset_PairedWithGrayIllumImage as Dataset
     elif dataset == 'SID_SAM':
         from basicsr.data.SID_imagesemantic_dataset import Dataset_SIDImageSemantic as Dataset 
+    elif dataset == 'LOLv2':
+        from basicsr.data.paired_sam_image_dataset import Dataset_PairedSamGrayIllImage_LOLv2 as Dataset
+
 
     opt = opt['datasets']['val']
     opt['phase'] = 'test'
