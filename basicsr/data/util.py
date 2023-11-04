@@ -120,6 +120,25 @@ def read_img2(env, path, size=None):
         img = img[:, :, :3]
     return img
 
+def read_img_gray_scale(env, path, size=None):
+    """read image by cv2 or from lmdb
+    return: Numpy float32, HWC, BGR, [0,1]"""
+    if env is None:  # img
+        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            print(path)
+        if size is not None:
+            img = cv2.resize(img, (size[0], size[1]))
+    else:
+        img = _read_img_lmdb(env, path, size)
+
+    img = img.astype(np.float32) / 255.
+    if img.ndim == 2:
+        img = np.expand_dims(img, axis=2)
+    # some images have 4 channels
+    if img.shape[2] > 3:
+        img = img[:, :, :3]
+    return img
 
 def read_img_seq(path, size=None):
     """Read a sequence of images from a given folder path
@@ -159,7 +178,7 @@ def read_img_seq_gray(path, size=None):
     else:
         img_path_l = sorted(glob.glob(os.path.join(path, '*')))
 
-    img_l = [read_img(None, v, size) for v in img_path_l]
+    img_l = [read_img_gray_scale(None, v, size) for v in img_path_l]
     # stack to Torch tensor
     imgs = np.stack(img_l, axis=0)
 
