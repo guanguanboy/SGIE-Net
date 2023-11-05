@@ -19,6 +19,9 @@ import torch.nn.functional as F
 from basicsr.models.archs.arch_util import LayerNorm2d
 from basicsr.models.archs.local_arch import Local_Base
 from basicsr.models.archs.dynamic_region_conv import DRConv2d
+from basicsr.utils.img_util import save_feature_map
+# 定义全局变量
+featmap_index = 0
 
 class SimpleGate(nn.Module):
     def forward(self, x):
@@ -547,7 +550,11 @@ class SGIENetEdgeWDync(nn.Module):
 
         seg_feats = self.estimator(img_rgb, seg_map)
         #seg_feats, illu_map = self.estimator(img_rgb, sematic_mask)
-        
+        global featmap_index
+        featmap_index = featmap_index + 1
+        feats_file_name = f'results/featmaps/{featmap_index}_feats.png'
+
+        save_feature_map(seg_feats, feats_file_name)
         x = self.enhancer(inp, seg_feats)
 
         return x

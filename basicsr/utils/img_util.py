@@ -4,6 +4,7 @@ import numpy as np
 import os
 import torch
 from torchvision.utils import make_grid
+from PIL import Image,ImageDraw, ImageFont
 
 
 def img2tensor(imgs, bgr2rgb=True, float32=True):
@@ -218,3 +219,33 @@ def crop_border(imgs, crop_border):
         else:
             return imgs[crop_border:-crop_border, crop_border:-crop_border,
                         ...]
+
+
+def save_gray_image(image_numpy, image_path, aspect_ratio=1.0):
+    """Save a numpy image to the disk
+
+    Parameters:
+        image_numpy (numpy array) -- input numpy array
+        image_path (str)          -- the path of the image
+    """
+
+    image_pil = Image.fromarray(image_numpy, mode='L')
+    h, w = image_numpy.shape
+
+    if aspect_ratio > 1.0:
+        image_pil = image_pil.resize((h, int(w * aspect_ratio)), Image.BICUBIC)
+    if aspect_ratio < 1.0:
+        image_pil = image_pil.resize((int(h / aspect_ratio), w), Image.BICUBIC)
+    image_pil.save(image_path,quality=100) #added by Mia (quality)
+
+def save_feature_map(feature_map, image_path):
+    """Save a feature_map to the disk
+
+    Parameters:
+        feature_map (cuda tensor) -- input cuda tensor
+        image_path (str)          -- the path of the image
+    """
+    mean_tensor = torch.abs((feature_map)).mean(1, keepdim=True)
+    print(mean_tensor.size())
+    mean_numpy = ((mean_tensor.squeeze(0).squeeze(0)).cpu().detach().contiguous().numpy()*255).astype(np.int8)
+    save_gray_image(mean_numpy, image_path)
