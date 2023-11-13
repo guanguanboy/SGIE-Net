@@ -43,6 +43,18 @@ class Dataset_SIDImageSemantic(data.Dataset):
                     subfolders_LQ.append(subfolders_LQ_origin[mm])
                     subfolders_GT.append(subfolders_GT_origin[mm])
                     subfolders_SM.append(subfolders_semantic_origin[mm])
+                if '10054' in name or '10103' in name:
+                    subfolders_LQ.append(subfolders_LQ_origin[mm])
+                    subfolders_GT.append(subfolders_GT_origin[mm])
+                    subfolders_SM.append(subfolders_semantic_origin[mm])
+                if '10163' in name or '10193' in name:
+                    subfolders_LQ.append(subfolders_LQ_origin[mm])
+                    subfolders_GT.append(subfolders_GT_origin[mm])
+                    subfolders_SM.append(subfolders_semantic_origin[mm])                
+                if '10227' in name:
+                    subfolders_LQ.append(subfolders_LQ_origin[mm])
+                    subfolders_GT.append(subfolders_GT_origin[mm])
+                    subfolders_SM.append(subfolders_semantic_origin[mm])                       
         else:
             for mm in range(len(subfolders_LQ_origin)):
                 name = os.path.basename(subfolders_LQ_origin[mm])
