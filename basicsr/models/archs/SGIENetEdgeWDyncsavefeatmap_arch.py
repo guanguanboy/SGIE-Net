@@ -527,10 +527,10 @@ class Illumination_seg_gray_ill_Estimator(nn.Module):
         x_1 = self.conv1(input)
         #illu_fea = self.depth_conv(x_1)
         illu_fea = self.dr_conv(x_1)
-        #illu_map = self.conv2(illu_fea)
+        #illu_map = self.conv2(illu_fea) savefeatmap
         return illu_fea
             
-class SGIENetEdgeWDync(nn.Module):
+class SGIENetEdgeWDyncsavefeatmap(nn.Module):
 
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
@@ -593,7 +593,7 @@ if __name__ == '__main__':
     middle_blk_num = 1
     dec_blks = [1, 1, 1, 1]
     
-    net = SGIENetEdgeWDync(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num,
+    net = SGIENetEdgeWDyncsavefeatmap(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num,
                       enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
 
 
