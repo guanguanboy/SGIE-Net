@@ -168,19 +168,18 @@ if dataset in ['SID', 'SMID', 'SDSD_indoor', 'SDSD_outdoor']:
             utils.save_img((os.path.join(result_dir_gt, type_id, os.path.splitext(
                 os.path.split(inp_path)[-1])[0] + '.png')), img_as_ubyte(target))
             
-elif dataset in ['LOLv1','SID_SAM','LOLv2','LOLv1_edge']:
+elif dataset in ['LOLv1','SID_SAM','LOLv2','LOLv1_edge','LOLv2_synthetic']:
 
     os.makedirs(result_dir_input, exist_ok=True)
     os.makedirs(result_dir_gt, exist_ok=True)
     if dataset == 'LOLv1':
         from basicsr.data.paired_image_dataset import Dataset_PairedWithGrayIllumImage as Dataset
-    elif dataset == 'LOLv1_edge':
+    elif dataset == 'LOLv1_edge' or dataset == 'LOLv2_synthetic':
         from basicsr.data.paired_sam_image_dataset import Dataset_PairedSamImage as Dataset
-
     elif dataset == 'SID_SAM':
         from basicsr.data.SID_imagesemantic_dataset import Dataset_SIDImageSemantic as Dataset 
     elif dataset == 'LOLv2':
-        from basicsr.data.paired_sam_image_dataset import Dataset_PairedSamGrayIllImage_LOLv2 as Dataset
+        from basicsr.data.paired_sam_image_dataset import Dataset_PairedSamImage_LOLv2 as Dataset
 
 
     opt = opt['datasets']['val']
