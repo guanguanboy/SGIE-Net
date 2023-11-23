@@ -270,9 +270,9 @@ class FeedForward(nn.Module):
 
 
 ##########################################################################
-class Attention(nn.Module):
+class SGMSA(nn.Module):
     def __init__(self, dim, num_heads, bias):
-        super(Attention, self).__init__()
+        super(SGMSA, self).__init__()
         self.num_heads = num_heads
         self.temperature = nn.Parameter(torch.ones(num_heads, 1, 1))
 
@@ -317,7 +317,7 @@ class SGTB(nn.Module):
         self.blocks = nn.ModuleList([])
         for _ in range(num_blocks):
             self.blocks.append(nn.ModuleList([LayerNorm(dim, LayerNorm_type), LayerNorm(dim, LayerNorm_type),
-            Attention(dim, num_heads, bias),
+            SGMSA(dim, num_heads, bias),
             LayerNorm(dim, LayerNorm_type),
             FeedForward(dim, ffn_expansion_factor, bias)]))
 
@@ -330,8 +330,8 @@ class SGTB(nn.Module):
 
         return x
     
-
-class EnhanceNet(nn.Module):
+##########################################################################
+class SegmentationGuidedEnhanceNet(nn.Module):
 
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
@@ -424,80 +424,11 @@ class EnhanceNet(nn.Module):
         x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h))
         return x
 
-class Illumination_Estimator(nn.Module):
+##########################################################################
+class EdgeAwareFeatureExtractor(nn.Module):
     def __init__(
-            self, n_fea_middle, n_fea_in=4, n_fea_out=3):  #__init__部分是内部属性，而forward的输入才是外部输入
-        super(Illumination_Estimator, self).__init__()
-
-        self.conv1 = nn.Conv2d(n_fea_in, n_fea_middle, kernel_size=1, bias=True)
-
-        self.depth_conv = nn.Conv2d(
-            n_fea_middle, n_fea_middle, kernel_size=5, padding=2, bias=True, groups=n_fea_in)
-        
-        self.down = nn.Conv2d(n_fea_middle, n_fea_middle, 2, 2)
-
-        self.dr_conv = DRConv2d(n_fea_middle, n_fea_middle, kernel_size=1)
-
-        self.double_channel = nn.Conv2d(n_fea_middle, n_fea_middle * 2, 1, bias=False)
-        self.up = nn.PixelShuffle(2)
-
-        self.conv2 = nn.Conv2d(n_fea_middle, n_fea_out, kernel_size=1, bias=True)
-
-    def forward(self, img, gray_illumin):
-        # img:        b,c=3,h,w
-        # mean_c:     b,c=1,h,w
-        
-        # illu_fea:   b,c,h,w
-        # illu_map:   b,c=3,h,w
-        
-        #mean_c = img.mean(dim=1).unsqueeze(1)
-        # stx()
-        input = torch.cat([img,gray_illumin], dim=1)
-
-        x_1 = self.conv1(input)
-        x_1 = self.depth_conv(x_1)
-        illu_fea = self.down(x_1)
-        illu_fea = self.dr_conv(illu_fea)
-        illu_fea = self.double_channel(illu_fea)
-        illu_fea = self.up(illu_fea)
-        illu_map = self.conv2(illu_fea)
-        return illu_fea, illu_map
-
-#下面这个模块即使用了seg 又使用了illumination prior.
-class Illumination_seg_Estimator(nn.Module):
-    def __init__(
-            self, n_fea_middle, n_fea_in=4, n_fea_out=3):  #__init__部分是内部属性，而forward的输入才是外部输入
-        super(Illumination_seg_Estimator, self).__init__()
-
-        self.conv1 = nn.Conv2d(n_fea_in, n_fea_middle, kernel_size=1, bias=True)
-
-        self.depth_conv = nn.Conv2d(
-            n_fea_middle, n_fea_middle, kernel_size=5, padding=2, bias=True, groups=n_fea_in)
-
-        self.conv2 = nn.Conv2d(n_fea_middle, n_fea_out, kernel_size=1, bias=True)
-
-    def forward(self, img, seg_mask):
-        # img:        b,c=3,h,w
-        # mean_c:     b,c=1,h,w
-        
-        # illu_fea:   b,c,h,w
-        # illu_map:   b,c=3,h,w
-        
-        mean_c = img.mean(dim=1).unsqueeze(1)
-        # stx()
-        img = img + img*seg_mask
-
-        input = torch.cat([img,mean_c], dim=1)
-
-        x_1 = self.conv1(input)
-        illu_fea = self.depth_conv(x_1)
-        illu_map = self.conv2(illu_fea)
-        return illu_fea, illu_map
-
-class Illumination_seg_gray_ill_Estimator(nn.Module):
-    def __init__(
-            self, n_fea_middle, n_fea_in=4, n_fea_out=3):  #__init__部分是内部属性，而forward的输入才是外部输入
-        super(Illumination_seg_gray_ill_Estimator, self).__init__()
+            self, n_fea_middle, n_fea_in=4, n_fea_out=3): 
+        super(EdgeAwareFeatureExtractor, self).__init__()
 
         self.conv1 = nn.Conv2d(n_fea_in, n_fea_middle, kernel_size=1, bias=True)
 
@@ -505,26 +436,16 @@ class Illumination_seg_gray_ill_Estimator(nn.Module):
             n_fea_middle, n_fea_middle, kernel_size=5, padding=2, bias=True, groups=n_fea_in)
         
         self.dr_conv = DRConv2d(n_fea_middle, n_fea_middle, kernel_size=1)
-
-        #self.conv2 = nn.Conv2d(n_fea_middle, n_fea_out, kernel_size=1, bias=True)
 
     def forward(self, rgb, edge):
-        # img:        b,c=3,h,w
-        # mean_c:     b,c=1,h,w
-        
-        # illu_fea:   b,c,h,w
-        # illu_map:   b,c=3,h,w
-        
-        #mean_c = img.mean(dim=1).unsqueeze(1)
-        # stx()
+
         input = torch.cat([rgb,edge], dim=1)
 
         x_1 = self.conv1(input)
-        #illu_fea = self.depth_conv(x_1)
         illu_fea = self.dr_conv(x_1)
-        #illu_map = self.conv2(illu_fea)
         return illu_fea
-            
+
+##########################################################################
 class SGIENetEdgeWDync(nn.Module):
 
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
@@ -533,9 +454,9 @@ class SGIENetEdgeWDync(nn.Module):
         self.feature_converter = nn.Conv2d(in_channels=1, out_channels=width, kernel_size=3, padding=1, stride=1, groups=1,
                               bias=True)
         
-        self.estimator = Illumination_seg_gray_ill_Estimator(width)
+        self.estimator = EdgeAwareFeatureExtractor(width)
         
-        self.enhancer = EnhanceNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num, enc_blk_nums=enc_blk_nums, dec_blk_nums=enc_blk_nums)
+        self.enhancer = SegmentationGuidedEnhanceNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num, enc_blk_nums=enc_blk_nums, dec_blk_nums=enc_blk_nums)
 
     def forward(self, inp):
         B, C, H, W = inp.shape
@@ -544,25 +465,12 @@ class SGIENetEdgeWDync(nn.Module):
         seg_map = inp[:,3:4,:,:]
 
         seg_feats = self.estimator(img_rgb, seg_map)
-        #seg_feats, illu_map = self.estimator(img_rgb, sematic_mask)
         
         x = self.enhancer(inp, seg_feats)
 
         return x
-    """
-    def forward(self, inp):
-        B, C, H, W = inp.shape
 
-        img_rgb = inp[:,0:3,:,:]
-        sematic_mask = inp[:,3:,:,:]
-
-        seg_feats, illu_map = self.estimator(img_rgb, sematic_mask)
-
-        input_img = img_rgb * illu_map + img_rgb
-        x = self.enhancer(input_img, seg_feats)
-
-        return x
-    """    
+##########################################################################
 if __name__ == '__main__':
     from fvcore.nn import FlopCountAnalysis
     img_channel = 4
@@ -579,7 +487,7 @@ if __name__ == '__main__':
     output = net(inp_img)
     print(output.shape)
     flops = FlopCountAnalysis(net,inp_img)
-    n_param = sum([p.nelement() for p in net.parameters()])  # 所有参数数量
+    n_param = sum([p.nelement() for p in net.parameters()])
     print(f'GMac:{flops.total()/(1024*1024*1024)}')
     print(f'Params:{n_param}')
 
