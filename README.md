@@ -9,8 +9,29 @@
 
 ## Installation
 
-See [INSTALL.md](INSTALL.md) for the installation of dependencies required to run .
+1. Clone our repository
+```
+Download our code.
+cd SGF
+```
 
+2. Make conda environment
+```
+conda create -n pytorch111 python=3.7
+conda activate pytorch111
+```
+
+3. Install dependencies
+```
+conda install pytorch=1.11 torchvision cudatoolkit=10.2 -c pytorch
+pip install matplotlib scikit-learn scikit-image opencv-python yacs joblib natsort h5py tqdm
+pip install einops gdown addict future lmdb numpy pyyaml requests scipy tb-nightly yapf lpips
+```
+
+4. Install basicsr
+```
+python setup.py develop --no_cuda_ext
+```
 
 ## Prepare Dataset
 Download the following datasets:
