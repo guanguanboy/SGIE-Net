@@ -17,6 +17,16 @@
 See [INSTALL.md](INSTALL.md) for the installation of dependencies required to run .
 
 
+## Prepare Dataset
+Download the following datasets:
+
+LOL-v1 [Baidu Disk](https://pan.baidu.com/s/1ZAC9TWR-YeuLIkWs3L7z4g?pwd=cyh2) (code: `cyh2`), [Google Drive](https://drive.google.com/file/d/1L-kqSQyrmMueBh_ziWoPFhfsAh50h20H/view?usp=sharing)
+
+LOL-v2 [Baidu Disk](https://pan.baidu.com/s/1X4HykuVL_1WyB3LWJJhBQg?pwd=cyh2) (code: `cyh2`), [Google Drive](https://drive.google.com/file/d/1Ou9EljYZW8o5dbDCf9R34FS8Pd8kEp2U/view?usp=sharing)
+
+SID [Baidu Disk](https://pan.baidu.com/share/init?surl=HRr-5LJO0V0CWqtoctQp9w) (code: `gplv`), [Google Drive](https://drive.google.com/drive/folders/1eQ-5Z303sbASEvsgCBSDbhijzLTWQJtR?usp=share_link&pli=1)
+
+
 ## Training
 Training instructions on different datasets are listed as follows. 
 
@@ -55,7 +65,7 @@ nohup ./train_sam.sh Enhancement/Options/Enhancement_SGF_SID.yml
 
 ## Evaluation
 
-Fisrt download the pretained model from [Google Drive](https://drive.google.com/drive/folders/1N_qeQuP4EZJ3lBs0mG8S9oT8qvXpY0YE?usp=sharing) or [Baidu Drive](https://pan.baidu.com/s/13L-EROAtlOGNUrBJFehQsQ)（pacs）and put them in the root directory.
+Fisrt download the pretained model from [Google Drive](https://drive.google.com/drive/folders/1N_qeQuP4EZJ3lBs0mG8S9oT8qvXpY0YE?usp=sharing) or [Baidu Disk](https://pan.baidu.com/s/13L-EROAtlOGNUrBJFehQsQ)（code: `pacs`）and put them in the root directory.
 
 Evaluation instructions on different datasets are listed as follows. 
 
