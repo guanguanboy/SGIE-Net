@@ -51,7 +51,7 @@ Training instructions on different datasets are listed as follows.
 training code:
 
 ```
-nohup ./train_sam.sh Enhancement/Options/Enhancement_SGF_Lolv1.yml
+./train_sam.sh Enhancement/Options/Enhancement_SGF_Lolv1.yml
 ```
 
 ### LOL-v2-real
@@ -59,7 +59,7 @@ nohup ./train_sam.sh Enhancement/Options/Enhancement_SGF_Lolv1.yml
 training code:
 
 ```
-nohup ./train_sam.sh Enhancement/Options/Enhancement_SGF_Lolv2_real.yml
+ ./train_sam.sh Enhancement/Options/Enhancement_SGF_Lolv2_real.yml
 ```
 
 ### LOL-v2-synthetic
@@ -67,7 +67,7 @@ nohup ./train_sam.sh Enhancement/Options/Enhancement_SGF_Lolv2_real.yml
 training code:
 
 ```
-nohup ./train_sam.sh Enhancement/Options/Enhancement_SGF_Lolv2_synthetic.yml
+./train_sam.sh Enhancement/Options/Enhancement_SGF_Lolv2_synthetic.yml
 ```
 
 ### SID
@@ -75,7 +75,7 @@ nohup ./train_sam.sh Enhancement/Options/Enhancement_SGF_Lolv2_synthetic.yml
 training code:
 
 ```
-nohup ./train_sam.sh Enhancement/Options/Enhancement_SGF_SID.yml
+./train_sam.sh Enhancement/Options/Enhancement_SGF_SID.yml
 ```
 
 

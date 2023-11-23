@@ -44,7 +44,7 @@ datasets:
 
   val:
     name: ValSet
-    type: Dataset_PairedSamImage_LOLv2
+    type: Dataset_PairedSamImage
     dataroot_gt: /data/liguanlin/Datasets/LowLight/LOL-v2/Synthetic/Test/Normal
     dataroot_lq: /data/liguanlin/Datasets/LowLight/LOL-v2/Synthetic/Test/Low
     dataroot_semantic: /data/liguanlin/Datasets/LowLight/LOL-v2/Synthetic/Test/Low_edge
