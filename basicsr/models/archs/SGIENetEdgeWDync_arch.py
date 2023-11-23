@@ -248,7 +248,6 @@ class LayerNorm(nn.Module):
 
 
 ##########################################################################
-## Gated-Dconv Feed-Forward Network (GDFN)
 class FeedForward(nn.Module):
     def __init__(self, dim, ffn_expansion_factor, bias):
         super(FeedForward, self).__init__()
@@ -271,7 +270,6 @@ class FeedForward(nn.Module):
 
 
 ##########################################################################
-## Multi-DConv Head Transposed Self-Attention (MDTA)
 class Attention(nn.Module):
     def __init__(self, dim, num_heads, bias):
         super(Attention, self).__init__()
@@ -566,24 +564,22 @@ class SGIENetEdgeWDync(nn.Module):
         return x
     """    
 if __name__ == '__main__':
+    from fvcore.nn import FlopCountAnalysis
     img_channel = 4
     width = 32
 
-    # enc_blks = [2, 2, 4, 8]
-    # middle_blk_num = 12
-    # dec_blks = [2, 2, 2, 2]
-
-    enc_blks = [1, 1, 1, 28]
-    middle_blk_num = 1
-    dec_blks = [1, 1, 1, 1]
+    enc_blks = [2, 2, 2, 2]
+    middle_blk_num = 4
+    dec_blks = [2, 2, 2, 2]
     
     net = SGIENetEdgeWDync(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num,
                       enc_blk_nums=enc_blks, dec_blk_nums=dec_blks).cuda()
 
-
-    inp_shape = (3, 256, 256)
-
     inp_img = torch.randn(1, 4, 256, 256).cuda()
     output = net(inp_img)
     print(output.shape)
+    flops = FlopCountAnalysis(net,inp_img)
+    n_param = sum([p.nelement() for p in net.parameters()])  # 所有参数数量
+    print(f'GMac:{flops.total()/(1024*1024*1024)}')
+    print(f'Params:{n_param}')
 

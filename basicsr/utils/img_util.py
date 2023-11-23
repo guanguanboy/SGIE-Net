@@ -249,3 +249,19 @@ def save_feature_map(feature_map, image_path):
     print(mean_tensor.size())
     mean_numpy = ((mean_tensor.squeeze(0).squeeze(0)).cpu().detach().contiguous().numpy()*255).astype(np.int8)
     save_gray_image(mean_numpy, image_path)
+
+def save_gray_torch_img(image_torch, image_path):
+    """Save a feature_map to the disk
+
+    Parameters:
+        feature_map (cuda tensor) -- input cuda tensor
+        image_path (str)          -- the path of the image
+    """
+    #image_torch = torch.clamp(image_torch * 255, 0, 255).byte()
+    print(image_torch.size())
+    #mean_numpy = ((image_torch.squeeze(0).squeeze(0)).cpu().detach().contiguous().numpy())
+    #save_gray_image(mean_numpy, image_path)
+
+    from torchvision.transforms import ToPILImage
+    pil_image = ToPILImage()((image_torch.squeeze(0).squeeze(0)).cpu().detach().contiguous())
+    pil_image.save(image_path)
