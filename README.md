@@ -4,13 +4,8 @@
 
 # Segmentation Guided Low-light Image Enhancement
 
-#### News
+## News
 - **Nov 23, 2023:** Codes, datasets, and pre-trained models will be released!
-
-<hr />
-
-> **Abstract:** * Given 
-<hr />
 
 ## Installation
 
