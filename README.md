@@ -30,7 +30,7 @@ pip install einops gdown addict future lmdb numpy pyyaml requests scipy tb-night
 
 4. Install basicsr
 ```
-python setup.py develop --no_cuda_ext
+python setup_basicsr.py develop --no_cuda_ext
 ```
 
 ## Prepare Dataset
